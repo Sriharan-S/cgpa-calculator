@@ -217,34 +217,59 @@
                 <p class="text-gray-400 text-center mb-10 text-sm">
                     Select your semester to begin
                 </p>
-                <div class="w-full max-w-sm space-y-4">
-                    <div class="relative">
-                        <select
-                            id="course-set-select"
-                            class="appearance-none w-full bg-[#2c2c2c] text-white text-lg p-5 rounded-3xl outline-none border border-transparent focus:border-indigo-500/50 shadow-lg cursor-pointer hover:bg-[#333]"
-                        >
-                            <option value="" disabled selected>
-                                Loading Semesters...
-                            </option>
-                        </select>
+                <div
+                    class="w-full max-w-md space-y-4 flex flex-col items-center max-h-[60vh] md:max-h-[70vh]"
+                >
+                    <!-- Search Bar -->
+                    <div
+                        id="semester-search-container"
+                        class="w-full hidden relative mb-2 flex-none"
+                    >
                         <div
-                            class="pointer-events-none absolute inset-y-0 right-6 flex items-center text-gray-400"
+                            class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
                         >
                             <svg
-                                class="w-6 h-6"
+                                class="h-5 w-5 text-gray-500"
                                 fill="none"
-                                stroke="currentColor"
                                 viewBox="0 0 24 24"
+                                stroke="currentColor"
                             >
                                 <path
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
                                     stroke-width="2"
-                                    d="M19 9l-7 7-7-7"
-                                ></path>
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                />
                             </svg>
                         </div>
+                        <input
+                            type="text"
+                            id="semester-search"
+                            placeholder="Search semesters..."
+                            class="w-full bg-[#1e1e1e] text-white pl-12 pr-4 py-4 rounded-2xl outline-none border border-gray-800 focus:border-indigo-500/50 transition-all placeholder-gray-600 focus:bg-[#252525]"
+                        />
                     </div>
+
+                    <!-- List Container -->
+                    <div
+                        id="semester-list"
+                        class="w-full space-y-3 overflow-y-auto custom-scroll pr-2 flex-1 min-h-0"
+                    >
+                        <!-- Cards will be injected here -->
+                        <div
+                            class="text-center text-gray-500 animate-pulse py-4"
+                        >
+                            Loading semesters...
+                        </div>
+                    </div>
+
+                    <!-- Show All Button -->
+                    <button
+                        id="show-all-btn"
+                        class="hidden flex-none text-sm text-gray-400 hover:text-white font-medium py-2 px-6 rounded-full bg-[#2c2c2c] hover:bg-[#383838] transition-all"
+                    >
+                        Show All
+                    </button>
                 </div>
             </div>
 
@@ -566,11 +591,12 @@
 
             // --- NEW: Dynamic Data Loader ---
             let courseSets = {};
+            let allSemesters = []; // Array for easier handling
+            const SHOW_LIMIT = 5;
 
             async function initApp() {
                 try {
-                    // Fetch the JSON file from the same directory
-                    // To force a refresh of the JSON file (avoid browser caching), we add a timestamp
+                    // Fetch the JSON file
                     const response = await fetch(
                         "data.json?t=" + new Date().getTime(),
                     );
@@ -580,41 +606,105 @@
 
                     courseSets = await response.json();
 
-                    // Populate the dropdown AFTER data is loaded
-                    const selectEl =
-                        document.getElementById("course-set-select");
-                    selectEl.innerHTML =
-                        '<option value="" disabled selected>Choose Semester...</option>';
+                    // Convert object to array for easier filtering/sorting
+                    // Assuming keys are IDs. Sort by ID or name if needed.
+                    allSemesters = Object.keys(courseSets).map((id) => ({
+                        id: id,
+                        ...courseSets[id],
+                    }));
 
-                    // Sort keys to ensure order if necessary, or just iterate
-                    Object.keys(courseSets).forEach((id) => {
-                        const opt = document.createElement("option");
-                        opt.value = id;
-                        opt.textContent = courseSets[id].name;
-                        selectEl.appendChild(opt);
+                    // Setup Search Listener
+                    const searchInput =
+                        document.getElementById("semester-search");
+                    searchInput.addEventListener("input", (e) => {
+                        const query = e.target.value.toLowerCase();
+                        const filtered = allSemesters.filter((sem) =>
+                            sem.name.toLowerCase().includes(query),
+                        );
+                        // If searching, show all matches without limit
+                        renderList(filtered);
+                        toggleShowAllVisibility(false); // Hide "Show All" when searching
                     });
 
-                    // Re-attach event listener
-                    selectEl.addEventListener("change", (e) =>
-                        loadSemester(e.target.value),
-                    );
+                    // Setup Show All Listener
+                    const showAllBtn = document.getElementById("show-all-btn");
+                    showAllBtn.addEventListener("click", () => {
+                        renderList(allSemesters);
+                        showAllBtn.classList.add("hidden");
+                    });
+
+                    // Initial Render
+                    initialRender();
                 } catch (e) {
                     console.error(e);
-                    const selectEl =
-                        document.getElementById("course-set-select");
-                    selectEl.innerHTML =
-                        '<option value="" disabled selected>Error loading data</option>';
-                    alert(
-                        "Error loading course data. Make sure data.json exists.",
-                    );
+                    document.getElementById("semester-list").innerHTML =
+                        '<div class="text-red-400 text-center py-4 bg-red-400/10 rounded-2xl border border-red-400/20">Error loading data. Check console.</div>';
                 }
+            }
+
+            function initialRender() {
+                const searchContainer = document.getElementById(
+                    "semester-search-container",
+                );
+                const showAllBtn = document.getElementById("show-all-btn");
+                const searchInput = document.getElementById("semester-search");
+
+                // Clear search
+                searchInput.value = "";
+
+                if (allSemesters.length > SHOW_LIMIT) {
+                    searchContainer.classList.remove("hidden");
+                    showAllBtn.classList.remove("hidden");
+                    renderList(allSemesters.slice(0, SHOW_LIMIT));
+                } else {
+                    searchContainer.classList.add("hidden");
+                    showAllBtn.classList.add("hidden");
+                    renderList(allSemesters);
+                }
+            }
+
+            function toggleShowAllVisibility(visible) {
+                const showAllBtn = document.getElementById("show-all-btn");
+                if (visible && allSemesters.length > SHOW_LIMIT) {
+                    showAllBtn.classList.remove("hidden");
+                } else {
+                    showAllBtn.classList.add("hidden");
+                }
+            }
+
+            function renderList(items) {
+                const container = document.getElementById("semester-list");
+                container.innerHTML = "";
+
+                if (items.length === 0) {
+                    container.innerHTML =
+                        '<div class="text-gray-500 text-center py-6">No semesters found.</div>';
+                    return;
+                }
+
+                items.forEach((sem) => {
+                    const card = document.createElement("div");
+                    card.className =
+                        "group w-full bg-[#1e1e1e] hover:bg-[#2c2c2c] p-5 rounded-2xl flex items-center justify-between cursor-pointer border border-gray-800 hover:border-gray-700 transition-all active:scale-[0.98]";
+                    card.onclick = () => loadSemester(sem.id);
+
+                    card.innerHTML = `
+                        <span class="font-medium text-gray-200 group-hover:text-white transition-colors text-lg">${sem.name}</span>
+                        <div class="w-10 h-10 rounded-full bg-[#121212] flex items-center justify-center text-gray-500 group-hover:text-white transition-colors border border-gray-800 group-hover:border-gray-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
             }
 
             // Call initialization immediately
             initApp();
 
             let currentSetId = null;
-            const selectEl = document.getElementById("course-set-select");
+            // Removed selectEl reference as it no longer exists
 
             // Function to update the visual grade button with Colors
             function updateGradeLabel(selectElement, labelId) {
@@ -718,7 +808,8 @@
                 document.getElementById("calculator-view").style.transform =
                     "translateX(100%)";
                 document.getElementById("reset-btn").classList.add("hidden");
-                selectEl.value = "";
+                // Reset search and list state
+                initialRender();
                 closeSheet();
             }
 
