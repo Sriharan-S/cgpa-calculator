@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Material Design Morph - Final Fix</title>
+        <style>
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                background-color: #d0bcff; /* Light Lavender */
+                margin: 0;
+                overflow: hidden;
+            }
+
+            .container {
+                position: relative;
+                width: 300px;
+                height: 300px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+
+            /* The white/lavender background circle */
+            .bg-circle {
+                position: absolute;
+                width: 200px;
+                height: 200px;
+                background-color: #e8def8;
+                border-radius: 50%;
+                z-index: 1;
+                box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            }
+
+            /* The morphing SVG */
+            svg {
+                position: relative;
+                z-index: 2;
+                width: 200px;
+                height: 200px;
+                overflow: visible; /* Prevents clipping during bouncy elastic moves */
+            }
+
+            path {
+                fill: #6750a4; /* Material Deep Purple */
+                will-change: d, transform; /* Performance optimization */
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="bg-circle"></div>
+            <svg viewBox="-100 -100 200 200">
+                <path id="morph-blob" d="" />
+            </svg>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+        <script>
+            // --- CONFIGURATION ---
+            // 120 points ensures silky smooth edges even on large monitors
+            const numPoints = 120;
+            const angleStep = (Math.PI * 2) / numPoints;
+            const pathElement = document.getElementById("morph-blob");
+
+            // Base size (60px radius = 120px width).
+            // Leaves room for "Elastic" bounce within the 200px container.
+            const size = 60;
+
+            // --- SHAPE MATH ENGINES ---
+            // These functions return the RADIUS for a given ANGLE.
+            // This "Polar Coordinate" approach prevents the folding glitches.
+
+            // 1. Polygon Engine (Squircle, Hexagon)
+            // Uses "Superformula" math to create perfect rounded squares/hexagons
+            function getPolyRadius(angle, sides, roundness) {
+                const a = 1,
+                    b = 1;
+                const n1 = roundness;
+                const n2 = roundness;
+                const n3 = roundness;
+
+                const t1 = Math.abs(Math.cos((sides * angle) / 4) / a);
+                const t2 = Math.abs(Math.sin((sides * angle) / 4) / b);
+
+                // Solve for Radius
+                let r = Math.pow(Math.pow(t1, n2) + Math.pow(t2, n3), -1 / n1);
+
+                // Clamp radius to prevent mathematical infinity spikes
+                return Math.min(r * size, size * 1.4);
+            }
+
+            // 2. Star Engine
+            // Mixes a sine wave with a "triangle wave" to get sharp tips but curved valleys
+            function getStarRadius(angle, points, innerRadiusRatio) {
+                // Create a triangle wave (linear star)
+                const step = Math.PI / points;
+                // Map angle to 0...1 repeating pattern
+                let t = (angle % (2 * step)) / step;
+                if (t > 1) t = 2 - t;
+
+                // Smooth the triangle wave slightly for rounded tips
+                // 't' is now the interpolation between inner and outer radius
+                // We apply a subtle ease to 't' to round the corners
+                const easedT = t * t * (3 - 2 * t); // Smoothstep
+
+                const outer = size * 1.15; // Slightly larger for star tips
+                const inner = size * innerRadiusRatio;
+
+                return inner + (outer - inner) * easedT;
+            }
+
+            // 3. Flower/Sticker Engine
+            // Pure Sine wave for soft scalloped edges
+            function getFlowerRadius(angle, lobes) {
+                const variance = size * 0.15; // How deep the waves are
+                return size + Math.cos(angle * lobes) * variance;
+            }
+
+            // --- GENERATE POINTS ---
+            function generateShape(type) {
+                const radii = [];
+                for (let i = 0; i < numPoints; i++) {
+                    const angle = i * angleStep;
+                    let r;
+
+                    switch (type) {
+                        case "circle":
+                            r = size;
+                            break;
+                        case "star": // 12 point star (The "New" badge look)
+                            // We actually alternate logic to make it look like the video
+                            // The video star is actually a "sticker" shape (sine wave) but sharper
+                            r = getFlowerRadius(angle, 12);
+                            // Sharpen the sine wave to make it look like a star
+                            let wave = Math.cos(angle * 12);
+                            r =
+                                size +
+                                (wave > 0
+                                    ? Math.pow(wave, 0.7)
+                                    : -Math.pow(-wave, 0.7)) *
+                                    18;
+                            break;
+                        case "burst": // 8 point deep star
+                            r = getStarRadius(angle, 8, 0.6);
+                            break;
+                        case "squircle": // Rounded Square
+                            r = getPolyRadius(angle, 4, 4);
+                            break;
+                        case "hexagon": // Rounded Hexagon
+                            r = getPolyRadius(angle, 6, 8);
+                            break;
+                        case "pill": // Approximating a tall rectangle
+                            // Stretching a circle logic
+                            let dx = Math.cos(angle);
+                            let dy = Math.sin(angle) * 1.5;
+                            r = size / Math.sqrt(dx * dx + (dy * dy) / 1.8);
+                            break;
+                    }
+                    radii.push(r);
+                }
+                return radii;
+            }
+
+            // --- RENDERER ---
+            const shapes = {
+                circle: generateShape("circle"),
+                star: generateShape("star"),
+                squircle: generateShape("squircle"),
+                burst: generateShape("burst"),
+                hexagon: generateShape("hexagon"),
+            };
+
+            // State object
+            let state = {
+                radii: [...shapes.circle],
+                rotation: 0,
+            };
+
+            function update() {
+                // Convert polar (radius, angle) to Cartesian (x,y)
+                // We add the rotation to the ANGLE here, which creates the spin
+                const points = state.radii.map((r, i) => {
+                    const theta = i * angleStep - Math.PI / 2; // Start at 12 o'clock
+                    return [r * Math.cos(theta), r * Math.sin(theta)];
+                });
+
+                // Catmull-Rom Spline for super smooth curves
+                // This connects the dots nicely
+                const k = 0.5; // Tension
+                let d = "";
+
+                for (let i = 0; i < points.length; i++) {
+                    const p0 = points[(i - 1 + points.length) % points.length];
+                    const p1 = points[i];
+                    const p2 = points[(i + 1) % points.length];
+                    const p3 = points[(i + 2) % points.length];
+
+                    const cp1x = p1[0] + ((p2[0] - p0[0]) * k) / 6;
+                    const cp1y = p1[1] + ((p2[1] - p0[1]) * k) / 6;
+
+                    const cp2x = p2[0] - ((p3[0] - p1[0]) * k) / 6;
+                    const cp2y = p2[1] - ((p3[1] - p1[1]) * k) / 6;
+
+                    if (i === 0) d += `M${p1[0]},${p1[1]} `;
+                    d += `C${cp1x},${cp1y} ${cp2x},${cp2y} ${p2[0]},${p2[1]} `;
+                }
+
+                pathElement.setAttribute("d", d + "Z");
+
+                // We apply rotation via SVG transform for the "velocity" feel
+                pathElement.setAttribute(
+                    "transform",
+                    `rotate(${state.rotation})`,
+                );
+            }
+
+            // --- ANIMATION TIMELINE ---
+            update(); // Initial draw
+
+            const tl = gsap.timeline({
+                repeat: -1,
+                defaults: { ease: "elastic.out(1, 0.75)", duration: 1.2 },
+            });
+
+            // Helper to add morph step
+            // We animate 'rotation' alongside 'radii' to get the velocity effect
+            function toShape(name, rotAmt) {
+                tl.to(state, {
+                    radii: shapes[name],
+                    rotation: `+=${rotAmt}`, // Rotates relative to current position
+                    onUpdate: update,
+                    delay: 0.2,
+                });
+            }
+
+            // The sequence from your video
+            toShape("star", 90); // Spin 90deg while turning into Star
+            toShape("squircle", -45); // Spin back 45deg to Squircle
+            toShape("burst", 120); // Big spin to Burst
+            toShape("hexagon", -90); // Spin back to Hexagon
+            toShape("circle", 180); // Full spin back to Circle
+        </script>
+    </body>
+</html>
