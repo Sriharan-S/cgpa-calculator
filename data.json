@@ -1,6 +1,6 @@
 {
   "1": {
-    "name": "Sem 1 - AIML",
+    "name": "Semester 1 - AIML",
     "sem_number": 1,
     "required": {
       "Professional English - I": 2,
@@ -15,7 +15,7 @@
     "elective_credit": 0
   },
   "2": {
-    "name": "Sem 5 - AIML",
+    "name": "Semester 5 - AIML",
     "sem_number": 5,
     "required": {
       "60 AM 001 - ML": 3,
@@ -32,7 +32,7 @@
     "elective_credit": 3
   },
   "3": {
-    "name": "Sem 6 - AIML",
+    "name": "Semester 6 - AIML",
     "sem_number": 6,
     "required": {
       "60 AM 601 - Visual Analytics": 3,
@@ -49,7 +49,7 @@
     "elective_credit": 3
   },
   "4": {
-    "name": "Sem 7 - AIML",
+    "name": "Semester 7 - AIML",
     "sem_number": 7,
     "required": {
       "60 AM 701 - Machine vision": 3,
