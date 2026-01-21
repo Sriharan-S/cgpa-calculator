@@ -10,6 +10,9 @@ A lightweight, modern CGPA Calculator built for university students. It features
 
 ## 🚀 Features
 
+![F2](https://github.com/user-attachments/assets/2df0d54c-653c-4775-9286-be2835b8a22f)
+
+
 ### For Students (The Calculator)
 
 * **Dynamic Data:** Automatically fetches the latest semesters and subjects from a central JSON file.
@@ -29,6 +32,8 @@ A lightweight, modern CGPA Calculator built for university students. It features
 ## 🛠️ Technical Architecture
 
 This project uses a **"Serverless CMS"** architecture to maintain dynamic data without a traditional database or backend server.
+
+![F1](https://github.com/user-attachments/assets/3ff0c98f-ff2f-4a51-a8d5-3251e1701353)
 
 ### 1. The Frontend (Cloudflare Pages)
 
