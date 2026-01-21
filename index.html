@@ -1,328 +1,609 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>CGPA Calculator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        body { 
-            font-family: 'Roboto', sans-serif; 
-            background-color: #121212; 
-            color: #e2e2e2;
-            -webkit-tap-highlight-color: transparent;
-            overscroll-behavior-y: none;
-            height: 100dvh;
-            width: 100vw;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
+        <title>CGPA Calculator</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            body {
+                font-family: "Roboto", sans-serif;
+                background-color: #121212;
+                color: #e2e2e2;
+                -webkit-tap-highlight-color: transparent;
+                overscroll-behavior-y: none;
+                height: 100dvh;
+                width: 100vw;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+            }
 
-        /* Material Input Style */
-        .mat-input-container {
-            position: relative;
-            background-color: #2c2c2c;
-            border-radius: 16px 16px 0 0;
-            border-bottom: 2px solid #555;
-            transition: background-color 0.2s;
-        }
-        .mat-input-container:focus-within {
-            background-color: #383838;
-            border-bottom-color: #818cf8;
-        }
+            /* Material Input Style */
+            .mat-input-container {
+                position: relative;
+                background-color: #2c2c2c;
+                border-radius: 16px 16px 0 0;
+                border-bottom: 2px solid #555;
+                transition: background-color 0.2s;
+            }
+            .mat-input-container:focus-within {
+                background-color: #383838;
+                border-bottom-color: #818cf8;
+            }
 
-        /* Bottom Sheet & Overlay */
-        .sheet-overlay {
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s ease;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-        }
-        
-        @media (min-width: 768px) {
+            /* Bottom Sheet & Overlay */
             .sheet-overlay {
-                align-items: center; 
-                padding: 2rem;
-            }
-        }
-
-        .sheet-overlay.active {
-            opacity: 1;
-            pointer-events: auto;
-        }
-
-        .bottom-sheet {
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.2, 0.0, 0, 1.0);
-            max-height: 90dvh;
-            width: 100%;
-        }
-        
-        @media (min-width: 768px) {
-            .bottom-sheet {
-                transform: scale(0.95);
                 opacity: 0;
-                border-radius: 24px !important;
-                max-width: 42rem;
-                max-height: 85vh;
+                pointer-events: none;
+                transition: opacity 0.3s ease;
+                display: flex;
+                align-items: flex-end;
+                justify-content: center;
             }
-        }
 
-        .sheet-overlay.active .bottom-sheet {
-            transform: translateY(0);
-        }
+            @media (min-width: 768px) {
+                .sheet-overlay {
+                    align-items: center;
+                    padding: 2rem;
+                }
+            }
 
-        @media (min-width: 768px) {
-            .sheet-overlay.active .bottom-sheet {
-                transform: scale(1);
+            .sheet-overlay.active {
                 opacity: 1;
+                pointer-events: auto;
             }
-        }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+            .bottom-sheet {
+                transform: translateY(100%);
+                transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+                max-height: 90dvh;
+                width: 100%;
+            }
 
-        /* Animation for Grade Pop */
-        @keyframes pop {
-            0% { transform: scale(0.95); }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); }
-        }
-        .grade-pop { animation: pop 0.2s ease-out forwards; }
-    </style>
-</head>
-<body>
+            @media (min-width: 768px) {
+                .bottom-sheet {
+                    transform: scale(0.95);
+                    opacity: 0;
+                    border-radius: 24px !important;
+                    max-width: 42rem;
+                    max-height: 85vh;
+                }
+            }
 
-    <header class="flex-none w-full flex items-center justify-between px-5 py-4 bg-[#1e1e1e] shadow-md z-30">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
-            </div>
-            <h1 class="text-xl font-medium tracking-wide">CGPA Calc</h1>
-        </div>
-        <button onclick="resetApp()" id="reset-btn" class="hidden text-sm font-medium text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-full active:bg-indigo-500/20 transition hover:bg-indigo-500/30">
-            Change Sem
-        </button>
-    </header>
+            .sheet-overlay.active .bottom-sheet {
+                transform: translateY(0);
+            }
 
-    <main class="flex-1 relative w-full h-full overflow-hidden">
-        
-        <div id="selection-view" class="absolute inset-0 flex flex-col justify-center items-center p-6 transition-transform duration-300 ease-in-out z-10 h-full">
-            <h2 class="text-3xl font-normal text-center mb-2">Welcome</h2>
-            <p class="text-gray-400 text-center mb-10 text-sm">Select your semester to begin</p>
-            <div class="w-full max-w-sm space-y-4">
-                <div class="relative">
-                    <select id="course-set-select" class="appearance-none w-full bg-[#2c2c2c] text-white text-lg p-5 rounded-3xl outline-none border border-transparent focus:border-indigo-500/50 shadow-lg cursor-pointer hover:bg-[#333]">
-                        <option value="" disabled selected>Loading Semesters...</option>
-                    </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-6 flex items-center text-gray-400">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                    </div>
+            @media (min-width: 768px) {
+                .sheet-overlay.active .bottom-sheet {
+                    transform: scale(1);
+                    opacity: 1;
+                }
+            }
+
+            .no-scrollbar::-webkit-scrollbar {
+                display: none;
+            }
+            .no-scrollbar {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+
+            .custom-scroll::-webkit-scrollbar {
+                width: 6px;
+            }
+            .custom-scroll::-webkit-scrollbar-track {
+                background: transparent;
+            }
+            .custom-scroll::-webkit-scrollbar-thumb {
+                background: #4b5563;
+                border-radius: 3px;
+            }
+
+            /* Animation for Grade Pop */
+            @keyframes pop {
+                0% {
+                    transform: scale(0.95);
+                }
+                50% {
+                    transform: scale(1.1);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+            .grade-pop {
+                animation: pop 0.2s ease-out forwards;
+            }
+        </style>
+    </head>
+    <body>
+        <header
+            class="flex-none w-full flex items-center justify-between px-5 py-4 bg-[#1e1e1e] shadow-md z-30"
+        >
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300"
+                >
+                    <svg
+                        class="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                        ></path>
+                    </svg>
                 </div>
+                <h1 class="text-xl font-medium tracking-wide">CGPA Calc</h1>
             </div>
-        </div>
-
-        <div id="calculator-view" class="absolute inset-0 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col bg-[#121212] z-20 h-full">
-            
-            <div class="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-6 max-w-3xl mx-auto w-full custom-scroll">
-                
-                <div class="bg-[#1e1e1e] p-5 rounded-3xl shadow-sm">
-                    <label class="text-indigo-200 text-sm font-medium mb-1 block">Previous CGPA (Optional)</label>
-                    <div class="mat-input-container flex items-center px-4">
-                        <input type="number" id="old-cgpa" step="0.01" placeholder="e.g. 8.5" class="w-full bg-transparent py-4 text-lg outline-none text-white placeholder-gray-500">
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between px-2">
-                    <span class="text-sm font-bold text-gray-400 uppercase tracking-widest">Subjects</span>
-                    <span class="text-xs text-gray-600 bg-gray-800 px-2 py-1 rounded-md">Credits</span>
-                </div>
-
-                <div id="courses-container" class="space-y-3"></div>
-
-                <div id="elective-container" class="hidden bg-[#1e1e1e] p-5 rounded-3xl border border-indigo-500/20">
-                    <span class="text-indigo-300 text-sm font-medium uppercase tracking-wide mb-3 block">Open Elective</span>
-                    <div class="flex items-center justify-between gap-4">
-                        <div class="relative flex-1">
-                            <select id="elective-select" class="appearance-none w-full bg-[#2c2c2c] text-gray-200 text-sm p-4 pr-8 rounded-2xl outline-none cursor-pointer border border-transparent focus:border-indigo-500/50">
-                                <option value="" disabled selected>Select Subject</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></div>
-                        </div>
-                        
-                        <div id="elective-grade-wrapper" class="hidden relative w-14 h-14 shrink-0">
-                            <div id="elective-grade-label" class="w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                </svg>
-                            </div>
-                            <select id="elective-grade" class="course-grade-select absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="updateGradeLabel(this, 'elective-grade-label')">
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="h-6"></div>
-            </div>
-
-            <div class="flex-none p-5 pb-8 bg-[#121212] border-t border-gray-800 z-30 flex justify-center">
-                <button onclick="calculateAndGenerate()" class="w-full max-w-md bg-[#b5c7fc] text-[#001d33] font-bold text-lg py-4 rounded-full shadow-xl shadow-indigo-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-[#a0b5f5]">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
-                    View Report
-                </button>
-            </div>
-        </div>
-    </main>
-
-    <div id="sheet-overlay" class="fixed inset-0 z-50 sheet-overlay bg-black/60 backdrop-blur-sm">
-        <div class="absolute inset-0" onclick="closeSheet()"></div>
-        <div class="bg-[#1e1e1e] rounded-t-[32px] md:rounded-[24px] bottom-sheet flex flex-col shadow-2xl overflow-hidden relative z-10">
-            <div class="w-full flex justify-center pt-4 pb-2 shrink-0 md:hidden" onclick="closeSheet()">
-                <div class="w-12 h-1.5 bg-gray-600 rounded-full"></div>
-            </div>
-            <button onclick="closeSheet()" class="absolute top-4 right-4 hidden md:flex w-8 h-8 items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            <button
+                onclick="resetApp()"
+                id="reset-btn"
+                class="hidden text-sm font-medium text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-full active:bg-indigo-500/20 transition hover:bg-indigo-500/30"
+            >
+                Change Sem
             </button>
-            <div class="flex-1 overflow-y-auto p-6 pb-10 flex flex-col items-center custom-scroll">
-                <h2 class="text-2xl font-bold text-white mb-6 md:mt-2">Results</h2>
-                <div class="flex w-full gap-4 mb-4 max-w-lg">
-                    <div class="flex-1 bg-[#2c2c2c] p-5 rounded-3xl text-center">
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">SGPA</p>
-                        <p id="res-sgpa" class="text-4xl font-bold text-[#b5c7fc]">--</p>
-                    </div>
-                    <div class="flex-1 bg-[#2c2c2c] p-5 rounded-3xl text-center relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full -mr-8 -mt-8"></div>
-                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">New CGPA</p>
-                        <p id="res-cgpa" class="text-4xl font-bold text-white">--</p>
+        </header>
+
+        <main class="flex-1 relative w-full h-full overflow-hidden">
+            <div
+                id="selection-view"
+                class="absolute inset-0 flex flex-col justify-center items-center p-6 transition-transform duration-300 ease-in-out z-10 h-full"
+            >
+                <h2 class="text-3xl font-normal text-center mb-2">Welcome</h2>
+                <p class="text-gray-400 text-center mb-10 text-sm">
+                    Select your semester to begin
+                </p>
+                <div class="w-full max-w-sm space-y-4">
+                    <div class="relative">
+                        <select
+                            id="course-set-select"
+                            class="appearance-none w-full bg-[#2c2c2c] text-white text-lg p-5 rounded-3xl outline-none border border-transparent focus:border-indigo-500/50 shadow-lg cursor-pointer hover:bg-[#333]"
+                        >
+                            <option value="" disabled selected>
+                                Loading Semesters...
+                            </option>
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-6 flex items-center text-gray-400"
+                        >
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M19 9l-7 7-7-7"
+                                ></path>
+                            </svg>
+                        </div>
                     </div>
                 </div>
-                <div class="flex w-full gap-4 mb-6 max-w-lg">
-                    <div class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700">
-                        <p class="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Credits</p>
-                        <p id="res-credits" class="text-xl font-bold text-gray-200">--</p>
+            </div>
+
+            <div
+                id="calculator-view"
+                class="absolute inset-0 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col bg-[#121212] z-20 h-full"
+            >
+                <div
+                    class="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-6 max-w-3xl mx-auto w-full custom-scroll"
+                >
+                    <div class="bg-[#1e1e1e] p-5 rounded-3xl shadow-sm">
+                        <label
+                            class="text-indigo-200 text-sm font-medium mb-1 block"
+                            >Previous CGPA (Optional)</label
+                        >
+                        <div class="mat-input-container flex items-center px-4">
+                            <input
+                                type="number"
+                                id="old-cgpa"
+                                step="0.01"
+                                placeholder="e.g. 8.5"
+                                class="w-full bg-transparent py-4 text-lg outline-none text-white placeholder-gray-500"
+                            />
+                        </div>
                     </div>
-                    <div class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700">
-                        <p class="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Points</p>
-                        <p id="res-points" class="text-xl font-bold text-gray-200">--</p>
+
+                    <div class="flex items-center justify-between px-2">
+                        <span
+                            class="text-sm font-bold text-gray-400 uppercase tracking-widest"
+                            >Subjects</span
+                        >
+                        <span
+                            class="text-xs text-gray-600 bg-gray-800 px-2 py-1 rounded-md"
+                            >Credits</span
+                        >
                     </div>
-                    <div id="res-old-container" class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700 hidden">
-                        <p class="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Old CGPA</p>
-                        <p id="res-old-cgpa" class="text-xl font-bold text-gray-200">--</p>
+
+                    <div id="courses-container" class="space-y-3"></div>
+
+                    <div
+                        id="elective-container"
+                        class="hidden bg-[#1e1e1e] p-5 rounded-3xl border border-indigo-500/20"
+                    >
+                        <span
+                            class="text-indigo-300 text-sm font-medium uppercase tracking-wide mb-3 block"
+                            >Open Elective</span
+                        >
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="relative flex-1">
+                                <select
+                                    id="elective-select"
+                                    class="appearance-none w-full bg-[#2c2c2c] text-gray-200 text-sm p-4 pr-8 rounded-2xl outline-none cursor-pointer border border-transparent focus:border-indigo-500/50"
+                                >
+                                    <option value="" disabled selected>
+                                        Select Subject
+                                    </option>
+                                </select>
+                                <div
+                                    class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400"
+                                >
+                                    <svg
+                                        class="w-4 h-4"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M19 9l-7 7-7-7"
+                                        ></path>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div
+                                id="elective-grade-wrapper"
+                                class="hidden relative w-14 h-14 shrink-0"
+                            >
+                                <div
+                                    id="elective-grade-label"
+                                    class="w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-300"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        class="h-6 w-6"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M19 9l-7 7-7-7"
+                                        />
+                                    </svg>
+                                </div>
+                                <select
+                                    id="elective-grade"
+                                    class="course-grade-select absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onchange="
+                                        updateGradeLabel(
+                                            this,
+                                            'elective-grade-label',
+                                        )
+                                    "
+                                ></select>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="h-6"></div>
                 </div>
-                <p class="w-full max-w-lg text-left text-xs text-gray-500 mb-2 pl-2">Generated Report:</p>
-                <div class="w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-lg mb-6 flex-shrink-0 border-4 border-white">
-                    <canvas id="report-canvas" class="w-full h-auto block"></canvas>
+
+                <div
+                    class="flex-none p-5 pb-8 bg-[#121212] border-t border-gray-800 z-30 flex justify-center"
+                >
+                    <button
+                        onclick="calculateAndGenerate()"
+                        class="w-full max-w-md bg-[#b5c7fc] text-[#001d33] font-bold text-lg py-4 rounded-full shadow-xl shadow-indigo-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-[#a0b5f5]"
+                    >
+                        <svg
+                            class="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                            ></path>
+                        </svg>
+                        View Report
+                    </button>
                 </div>
-                <a id="download-link" class="w-full max-w-sm bg-[#4f378b] text-white font-medium py-4 rounded-full text-center shadow-lg active:scale-95 transition-transform hover:bg-[#6042a6] shrink-0">
-                    Download Report Image
-                </a>
+            </div>
+        </main>
+
+        <div
+            id="sheet-overlay"
+            class="fixed inset-0 z-50 sheet-overlay bg-black/60 backdrop-blur-sm"
+        >
+            <div class="absolute inset-0" onclick="closeSheet()"></div>
+            <div
+                class="bg-[#1e1e1e] rounded-t-[32px] md:rounded-[24px] bottom-sheet flex flex-col shadow-2xl overflow-hidden relative z-10"
+            >
+                <div
+                    class="w-full flex justify-center pt-4 pb-2 shrink-0 md:hidden"
+                    onclick="closeSheet()"
+                >
+                    <div class="w-12 h-1.5 bg-gray-600 rounded-full"></div>
+                </div>
+                <button
+                    onclick="closeSheet()"
+                    class="absolute top-4 right-4 hidden md:flex w-8 h-8 items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition"
+                >
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M6 18L18 6M6 6l12 12"
+                        ></path>
+                    </svg>
+                </button>
+                <div
+                    class="flex-1 overflow-y-auto p-6 pb-10 flex flex-col items-center custom-scroll"
+                >
+                    <h2 class="text-2xl font-bold text-white mb-6 md:mt-2">
+                        Results
+                    </h2>
+                    <div class="flex w-full gap-4 mb-4 max-w-lg">
+                        <div
+                            class="flex-1 bg-[#2c2c2c] p-5 rounded-3xl text-center"
+                        >
+                            <p
+                                class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1"
+                            >
+                                SGPA
+                            </p>
+                            <p
+                                id="res-sgpa"
+                                class="text-4xl font-bold text-[#b5c7fc]"
+                            >
+                                --
+                            </p>
+                        </div>
+                        <div
+                            class="flex-1 bg-[#2c2c2c] p-5 rounded-3xl text-center relative overflow-hidden"
+                        >
+                            <div
+                                class="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full -mr-8 -mt-8"
+                            ></div>
+                            <p
+                                class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1"
+                            >
+                                New CGPA
+                            </p>
+                            <p
+                                id="res-cgpa"
+                                class="text-4xl font-bold text-white"
+                            >
+                                --
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex w-full gap-4 mb-6 max-w-lg">
+                        <div
+                            class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700"
+                        >
+                            <p
+                                class="text-gray-500 text-[10px] font-bold uppercase mb-0.5"
+                            >
+                                Credits
+                            </p>
+                            <p
+                                id="res-credits"
+                                class="text-xl font-bold text-gray-200"
+                            >
+                                --
+                            </p>
+                        </div>
+                        <div
+                            class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700"
+                        >
+                            <p
+                                class="text-gray-500 text-[10px] font-bold uppercase mb-0.5"
+                            >
+                                Points
+                            </p>
+                            <p
+                                id="res-points"
+                                class="text-xl font-bold text-gray-200"
+                            >
+                                --
+                            </p>
+                        </div>
+                        <div
+                            id="res-old-container"
+                            class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700 hidden"
+                        >
+                            <p
+                                class="text-gray-500 text-[10px] font-bold uppercase mb-0.5"
+                            >
+                                Old CGPA
+                            </p>
+                            <p
+                                id="res-old-cgpa"
+                                class="text-xl font-bold text-gray-200"
+                            >
+                                --
+                            </p>
+                        </div>
+                    </div>
+                    <p
+                        class="w-full max-w-lg text-left text-xs text-gray-500 mb-2 pl-2"
+                    >
+                        Generated Report:
+                    </p>
+                    <div
+                        class="w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-lg mb-6 flex-shrink-0 border-4 border-white"
+                    >
+                        <canvas
+                            id="report-canvas"
+                            class="w-full h-auto block"
+                        ></canvas>
+                    </div>
+                    <a
+                        id="download-link"
+                        class="w-full max-w-sm bg-[#4f378b] text-white font-medium py-4 rounded-full text-center shadow-lg active:scale-95 transition-transform hover:bg-[#6042a6] shrink-0"
+                    >
+                        Download Report Image
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        const gradePoints = { 'O': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C': 5, 'U': 0 };
-        
-        // Define vibrant colors for each grade with matching colored shadows
-        const gradeColors = {
-            'O': 'bg-emerald-500 shadow-emerald-500/40',  // Outstanding - Emerald
-            'A+': 'bg-green-500 shadow-green-500/40',     // Excellent - Green
-            'A': 'bg-lime-600 shadow-lime-600/40',        // Very Good - Lime
-            'B+': 'bg-yellow-500 shadow-yellow-500/40',   // Good - Yellow
-            'B': 'bg-orange-500 shadow-orange-500/40',    // Above Average - Orange
-            'C': 'bg-red-400 shadow-red-400/40',          // Average - Light Red
-            'U': 'bg-red-700 shadow-red-700/40'           // Fail - Dark Red
-        };
+        <script>
+            const GH_LOGO_BASE64 =
+                "data:image/png;base64,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";
 
-        const gradeOptionsHTML = `<option value="" disabled selected></option>` + 
-            Object.keys(gradePoints).map(g => `<option value="${g}">${g}</option>`).join('');
+            const githubImg = new Image();
+            githubImg.src = GH_LOGO_BASE64;
+            const gradePoints = {
+                O: 10,
+                "A+": 9,
+                A: 8,
+                "B+": 7,
+                B: 6,
+                C: 5,
+                U: 0,
+            };
 
-        // --- NEW: Dynamic Data Loader ---
-        let courseSets = {}; 
-        
-        async function initApp() {
-            try {
-                // Fetch the JSON file from the same directory
-                // To force a refresh of the JSON file (avoid browser caching), we add a timestamp
-                const response = await fetch('data.json?t=' + new Date().getTime());
-                
-                if (!response.ok) throw new Error("Could not load course data");
-                
-                courseSets = await response.json();
-                
-                // Populate the dropdown AFTER data is loaded
-                const selectEl = document.getElementById('course-set-select');
-                selectEl.innerHTML = '<option value="" disabled selected>Choose Semester...</option>';
-                
-                // Sort keys to ensure order if necessary, or just iterate
-                Object.keys(courseSets).forEach(id => {
-                    const opt = document.createElement('option');
-                    opt.value = id; 
-                    opt.textContent = courseSets[id].name;
-                    selectEl.appendChild(opt);
-                });
-                
-                // Re-attach event listener
-                selectEl.addEventListener('change', (e) => loadSemester(e.target.value));
+            // Define vibrant colors for each grade with matching colored shadows
+            const gradeColors = {
+                O: "bg-emerald-500 shadow-emerald-500/40", // Outstanding - Emerald
+                "A+": "bg-green-500 shadow-green-500/40", // Excellent - Green
+                A: "bg-lime-600 shadow-lime-600/40", // Very Good - Lime
+                "B+": "bg-yellow-500 shadow-yellow-500/40", // Good - Yellow
+                B: "bg-orange-500 shadow-orange-500/40", // Above Average - Orange
+                C: "bg-red-400 shadow-red-400/40", // Average - Light Red
+                U: "bg-red-700 shadow-red-700/40", // Fail - Dark Red
+            };
 
-            } catch (e) {
-                console.error(e);
-                const selectEl = document.getElementById('course-set-select');
-                selectEl.innerHTML = '<option value="" disabled selected>Error loading data</option>';
-                alert("Error loading course data. Make sure data.json exists.");
+            const gradeOptionsHTML =
+                `<option value="" disabled selected></option>` +
+                Object.keys(gradePoints)
+                    .map((g) => `<option value="${g}">${g}</option>`)
+                    .join("");
+
+            // --- NEW: Dynamic Data Loader ---
+            let courseSets = {};
+
+            async function initApp() {
+                try {
+                    // Fetch the JSON file from the same directory
+                    // To force a refresh of the JSON file (avoid browser caching), we add a timestamp
+                    const response = await fetch(
+                        "data.json?t=" + new Date().getTime(),
+                    );
+
+                    if (!response.ok)
+                        throw new Error("Could not load course data");
+
+                    courseSets = await response.json();
+
+                    // Populate the dropdown AFTER data is loaded
+                    const selectEl =
+                        document.getElementById("course-set-select");
+                    selectEl.innerHTML =
+                        '<option value="" disabled selected>Choose Semester...</option>';
+
+                    // Sort keys to ensure order if necessary, or just iterate
+                    Object.keys(courseSets).forEach((id) => {
+                        const opt = document.createElement("option");
+                        opt.value = id;
+                        opt.textContent = courseSets[id].name;
+                        selectEl.appendChild(opt);
+                    });
+
+                    // Re-attach event listener
+                    selectEl.addEventListener("change", (e) =>
+                        loadSemester(e.target.value),
+                    );
+                } catch (e) {
+                    console.error(e);
+                    const selectEl =
+                        document.getElementById("course-set-select");
+                    selectEl.innerHTML =
+                        '<option value="" disabled selected>Error loading data</option>';
+                    alert(
+                        "Error loading course data. Make sure data.json exists.",
+                    );
+                }
             }
-        }
 
-        // Call initialization immediately
-        initApp();
+            // Call initialization immediately
+            initApp();
 
-        let currentSetId = null;
-        const selectEl = document.getElementById('course-set-select');
+            let currentSetId = null;
+            const selectEl = document.getElementById("course-set-select");
 
-        // Function to update the visual grade button with Colors
-        function updateGradeLabel(selectElement, labelId) {
-            const label = document.getElementById(labelId);
-            const value = selectElement.value;
-            
-            if (value) {
-                // Get the color class based on the grade, default to indigo if undefined
-                const colorClass = gradeColors[value] || 'bg-indigo-600 shadow-indigo-600/40';
-                
-                // Apply Active State
-                label.className = `w-full h-full rounded-2xl ${colorClass} text-white font-bold text-lg flex items-center justify-center shadow-lg grade-pop transition-all duration-300`;
-                label.innerText = value;
-                
-                // Remove animation class after playing
-                setTimeout(() => label.classList.remove('grade-pop'), 200);
-            } else {
-                // Default State (Icon Shown)
-                label.className = "w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-200";
-                label.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>`;
+            // Function to update the visual grade button with Colors
+            function updateGradeLabel(selectElement, labelId) {
+                const label = document.getElementById(labelId);
+                const value = selectElement.value;
+
+                if (value) {
+                    // Get the color class based on the grade, default to indigo if undefined
+                    const colorClass =
+                        gradeColors[value] ||
+                        "bg-indigo-600 shadow-indigo-600/40";
+
+                    // Apply Active State
+                    label.className = `w-full h-full rounded-2xl ${colorClass} text-white font-bold text-lg flex items-center justify-center shadow-lg grade-pop transition-all duration-300`;
+                    label.innerText = value;
+
+                    // Remove animation class after playing
+                    setTimeout(() => label.classList.remove("grade-pop"), 200);
+                } else {
+                    // Default State (Icon Shown)
+                    label.className =
+                        "w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-200";
+                    label.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>`;
+                }
             }
-        }
 
-        function loadSemester(setId) {
-            currentSetId = setId;
-            const set = courseSets[setId];
-            const container = document.getElementById('courses-container');
-            container.innerHTML = ''; 
+            function loadSemester(setId) {
+                currentSetId = setId;
+                const set = courseSets[setId];
+                const container = document.getElementById("courses-container");
+                container.innerHTML = "";
 
-            for (const [course, credit] of Object.entries(set.required)) {
-                // Generate a unique ID for the label to update
-                const labelId = `label-${course.replace(/[^a-zA-Z0-9]/g, '-')}-${Math.random().toString(36).substr(2, 5)}`;
-                
-                const row = document.createElement('div');
-                row.className = "flex items-center justify-between p-1";
-                row.innerHTML = `
+                for (const [course, credit] of Object.entries(set.required)) {
+                    // Generate a unique ID for the label to update
+                    const labelId = `label-${course.replace(/[^a-zA-Z0-9]/g, "-")}-${Math.random().toString(36).substr(2, 5)}`;
+
+                    const row = document.createElement("div");
+                    row.className = "flex items-center justify-between p-1";
+                    row.innerHTML = `
                     <div class="flex-1 pr-4">
                         <h3 class="text-base font-medium text-gray-200 leading-snug">${course}</h3>
                         <p class="text-xs text-gray-500 mt-1 font-medium tracking-wide">${credit} CREDITS</p>
@@ -343,259 +624,441 @@
                         </select>
                     </div>
                 `;
-                container.appendChild(row);
-            }
-
-            const elContainer = document.getElementById('elective-container');
-            const elSelect = document.getElementById('elective-select');
-            const elGradeWrap = document.getElementById('elective-grade-wrapper');
-            const elGrade = document.getElementById('elective-grade');
-
-            if (set.optional && set.optional.length > 0) {
-                elContainer.classList.remove('hidden');
-                elSelect.innerHTML = `<option value="" disabled selected>Select Subject</option>` + set.optional.map(c => `<option value="${c}">${c}</option>`).join('');
-                elSelect.onchange = function() { 
-                    if (this.value) { 
-                        elGradeWrap.classList.remove('hidden'); 
-                        elGrade.innerHTML = gradeOptionsHTML; 
-                        // Reset the elective label visual if re-selecting
-                        updateGradeLabel(elGrade, 'elective-grade-label');
-                    } 
-                };
-            } else { elContainer.classList.add('hidden'); }
-
-            document.getElementById('selection-view').style.transform = "translateX(-100%)";
-            document.getElementById('calculator-view').style.transform = "translateX(0)";
-            document.getElementById('reset-btn').classList.remove('hidden');
-        }
-
-        function resetApp() {
-            currentSetId = null;
-            document.getElementById('selection-view').style.transform = "translateX(0)";
-            document.getElementById('calculator-view').style.transform = "translateX(100%)";
-            document.getElementById('reset-btn').classList.add('hidden');
-            selectEl.value = "";
-            closeSheet();
-        }
-
-        function closeSheet() {
-            document.getElementById('sheet-overlay').classList.remove('active');
-        }
-
-        function calculateAndGenerate() {
-            const set = courseSets[currentSetId];
-            let totalCredits = 0, totalPoints = 0, reportData = [];
-            let filled = false;
-
-            document.querySelectorAll('.course-grade-select').forEach(input => {
-                if(input.value) {
-                    filled = true;
-                    const cred = parseFloat(input.getAttribute('data-credit'));
-                    const pts = gradePoints[input.value] * cred;
-                    totalCredits += cred; totalPoints += pts;
-                    reportData.push({ subject: input.name, grade: input.value, credits: cred, gradePoints: pts });
+                    container.appendChild(row);
                 }
-            });
 
-            const elName = document.getElementById('elective-select').value;
-            const elGrade = document.getElementById('elective-grade').value;
-            if(set.optional && set.optional.length > 0 && elName && elGrade) {
-                filled = true;
-                const cred = set.elective_credit;
-                const pts = gradePoints[elGrade] * cred;
-                totalCredits += cred; totalPoints += pts;
-                reportData.push({ subject: elName, grade: elGrade, credits: cred, gradePoints: pts });
+                const elContainer =
+                    document.getElementById("elective-container");
+                const elSelect = document.getElementById("elective-select");
+                const elGradeWrap = document.getElementById(
+                    "elective-grade-wrapper",
+                );
+                const elGrade = document.getElementById("elective-grade");
+
+                if (set.optional && set.optional.length > 0) {
+                    elContainer.classList.remove("hidden");
+                    elSelect.innerHTML =
+                        `<option value="" disabled selected>Select Subject</option>` +
+                        set.optional
+                            .map((c) => `<option value="${c}">${c}</option>`)
+                            .join("");
+                    elSelect.onchange = function () {
+                        if (this.value) {
+                            elGradeWrap.classList.remove("hidden");
+                            elGrade.innerHTML = gradeOptionsHTML;
+                            // Reset the elective label visual if re-selecting
+                            updateGradeLabel(elGrade, "elective-grade-label");
+                        }
+                    };
+                } else {
+                    elContainer.classList.add("hidden");
+                }
+
+                document.getElementById("selection-view").style.transform =
+                    "translateX(-100%)";
+                document.getElementById("calculator-view").style.transform =
+                    "translateX(0)";
+                document.getElementById("reset-btn").classList.remove("hidden");
             }
 
-            if(!filled) { alert("Please enter grades."); return; }
-
-            const sgpa = (totalPoints / totalCredits).toFixed(2);
-            let oldCgpa = parseFloat(document.getElementById('old-cgpa').value);
-            let newCgpa = null;
-            if(!isNaN(oldCgpa) && set.sem_number > 1) {
-                newCgpa = (((oldCgpa * (set.sem_number - 1)) + parseFloat(sgpa)) / set.sem_number).toFixed(2);
+            function resetApp() {
+                currentSetId = null;
+                document.getElementById("selection-view").style.transform =
+                    "translateX(0)";
+                document.getElementById("calculator-view").style.transform =
+                    "translateX(100%)";
+                document.getElementById("reset-btn").classList.add("hidden");
+                selectEl.value = "";
+                closeSheet();
             }
 
-            // Stats Update
-            document.getElementById('res-sgpa').textContent = sgpa;
-            document.getElementById('res-cgpa').textContent = newCgpa ? newCgpa : "--";
-            document.getElementById('res-credits').textContent = totalCredits;
-            document.getElementById('res-points').textContent = totalPoints;
-
-            const oldContainer = document.getElementById('res-old-container');
-            if(!isNaN(oldCgpa)) {
-                oldContainer.classList.remove('hidden');
-                document.getElementById('res-old-cgpa').textContent = oldCgpa;
-            } else {
-                oldContainer.classList.add('hidden');
+            function closeSheet() {
+                document
+                    .getElementById("sheet-overlay")
+                    .classList.remove("active");
             }
-            
-            drawReportCard(reportData, totalCredits, totalPoints, sgpa, oldCgpa, newCgpa);
-            document.getElementById('sheet-overlay').classList.add('active');
-        }
 
-        function drawReportCard(data, totCred, totPts, sgpa, oldCgpa, newCgpa) {
-            const canvas = document.getElementById('report-canvas');
-            const ctx = canvas.getContext('2d');
-            
-            const dummyCtx = document.createElement('canvas').getContext('2d');
-            dummyCtx.font = "30px Roboto, Arial"; 
-            let totalTextLines = 0;
-            data.forEach(row => totalTextLines += getLines(dummyCtx, row.subject, 700).length);
+            function calculateAndGenerate() {
+                const set = courseSets[currentSetId];
+                let totalCredits = 0,
+                    totalPoints = 0,
+                    reportData = [];
+                let filled = false;
 
-            const headerHeight = 350; 
-            const rowBaseHeight = 40;
-            const textLineHeight = 40; 
-            const summaryHeight = 450;
-            
-            canvas.width = 1600;
-            canvas.height = headerHeight + (totalTextLines * textLineHeight) + (data.length * rowBaseHeight) + summaryHeight;
+                // FIX: Only select inputs inside the courses-container to avoid picking up the elective dropdown
+                document
+                    .querySelectorAll("#courses-container .course-grade-select")
+                    .forEach((input) => {
+                        if (input.value) {
+                            filled = true;
+                            const cred = parseFloat(
+                                input.getAttribute("data-credit"),
+                            );
+                            const pts = gradePoints[input.value] * cred;
+                            totalCredits += cred;
+                            totalPoints += pts;
+                            reportData.push({
+                                subject: input.name,
+                                grade: input.value,
+                                credits: cred,
+                                gradePoints: pts,
+                            });
+                        }
+                    });
 
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0,0, canvas.width, canvas.height);
+                // Handle Elective Separately (This part remains the same)
+                const elName = document.getElementById("elective-select").value;
+                const elGrade = document.getElementById("elective-grade").value;
+                if (
+                    set.optional &&
+                    set.optional.length > 0 &&
+                    elName &&
+                    elGrade
+                ) {
+                    filled = true;
+                    const cred = set.elective_credit;
+                    const pts = gradePoints[elGrade] * cred;
+                    totalCredits += cred;
+                    totalPoints += pts;
+                    reportData.push({
+                        subject: elName,
+                        grade: elGrade,
+                        credits: cred,
+                        gradePoints: pts,
+                    });
+                }
 
-            const fontTitle = "bold 50px Roboto, Arial";
-            const fontSub = "30px Roboto, Arial";
-            const fontHead = "bold 32px Roboto, Arial";
-            const fontBody = "30px Roboto, Arial";
-            const startX = 80, startY = 80;
+                if (!filled) {
+                    alert("Please enter grades.");
+                    return;
+                }
 
-            ctx.fillStyle = "#1e1e1e";
-            ctx.font = fontTitle;
-            ctx.fillText("Academic Report", startX, startY + 50);
-            ctx.fillStyle = "#757575";
-            ctx.font = fontSub;
-            const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-            ctx.fillText(today, startX, startY + 100);
+                const sgpa = (totalPoints / totalCredits).toFixed(2);
+                let oldCgpa = parseFloat(
+                    document.getElementById("old-cgpa").value,
+                );
+                let newCgpa = null;
+                if (!isNaN(oldCgpa) && set.sem_number > 1) {
+                    newCgpa = (
+                        (oldCgpa * (set.sem_number - 1) + parseFloat(sgpa)) /
+                        set.sem_number
+                    ).toFixed(2);
+                }
 
-            const tableY = startY + 180;
-            const colX = [startX + 20, startX + 750, startX + 1050, startX + 1300];
-            
-            ctx.fillStyle = "#f3f4f6";
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(startX, tableY, 1440, 80, 16); else ctx.rect(startX, tableY, 1440, 80);
-            ctx.fill();
+                // Stats Update
+                document.getElementById("res-sgpa").textContent = sgpa;
+                document.getElementById("res-cgpa").textContent = newCgpa
+                    ? newCgpa
+                    : "--";
+                document.getElementById("res-credits").textContent =
+                    totalCredits;
+                document.getElementById("res-points").textContent = totalPoints;
 
-            ctx.fillStyle = "#111827";
-            ctx.font = fontHead;
-            ctx.fillText("Course Title", colX[0], tableY + 50);
-            ctx.fillText("Grade", colX[1], tableY + 50);
-            ctx.fillText("Credits", colX[2], tableY + 50);
-            ctx.fillText("Points", colX[3], tableY + 50);
+                const oldContainer =
+                    document.getElementById("res-old-container");
+                if (!isNaN(oldCgpa)) {
+                    oldContainer.classList.remove("hidden");
+                    document.getElementById("res-old-cgpa").textContent =
+                        oldCgpa;
+                } else {
+                    oldContainer.classList.add("hidden");
+                }
 
-            let currY = tableY + 120;
-            ctx.font = fontBody;
+                drawReportCard(
+                    reportData,
+                    totalCredits,
+                    totalPoints,
+                    sgpa,
+                    oldCgpa,
+                    newCgpa,
+                );
+                document
+                    .getElementById("sheet-overlay")
+                    .classList.add("active");
+            }
 
-            data.forEach((row) => {
-                ctx.fillStyle = "#374151";
-                const lines = getLines(ctx, row.subject, 700);
-                lines.forEach((l, idx) => ctx.fillText(l, colX[0], currY + (idx * 40)));
-                ctx.fillText(row.grade, colX[1], currY);
-                ctx.fillText(row.credits, colX[2] + 20, currY);
-                ctx.fillText(row.gradePoints, colX[3] + 20, currY);
+            function drawReportCard(
+                data,
+                totCred,
+                totPts,
+                sgpa,
+                oldCgpa,
+                newCgpa,
+            ) {
+                const canvas = document.getElementById("report-canvas");
+                const ctx = canvas.getContext("2d");
 
-                const rH = (lines.length * 40) + 40;
+                // Calculate required height based on text wrapping
+                const dummyCtx = document
+                    .createElement("canvas")
+                    .getContext("2d");
+                dummyCtx.font = "30px Roboto, Arial";
+                let totalTextLines = 0;
+                data.forEach(
+                    (row) =>
+                        (totalTextLines += getLines(
+                            dummyCtx,
+                            row.subject,
+                            700,
+                        ).length),
+                );
+
+                // Layout configuration
+                const headerHeight = 350;
+                const rowBaseHeight = 40;
+                const textLineHeight = 40;
+                const summaryHeight = 500;
+
+                // Set dynamic canvas size
+                canvas.width = 1600;
+                canvas.height =
+                    headerHeight +
+                    totalTextLines * textLineHeight +
+                    data.length * rowBaseHeight +
+                    summaryHeight;
+
+                // --- Background & Header ---
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                const fontTitle = "bold 50px Roboto, Arial";
+                const fontSub = "30px Roboto, Arial";
+                const fontHead = "bold 32px Roboto, Arial";
+                const fontBody = "30px Roboto, Arial";
+                const startX = 80,
+                    startY = 80;
+
+                // Draw Title
+                ctx.fillStyle = "#1e1e1e";
+                ctx.font = fontTitle;
+                ctx.fillText("Academic Report", startX, startY + 50);
+
+                // Draw Date
+                ctx.fillStyle = "#757575";
+                ctx.font = fontSub;
+                const today = new Date().toLocaleDateString("en-GB", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                });
+                ctx.fillText(today, startX, startY + 100);
+
+                // --- Table Header ---
+                const tableY = startY + 180;
+                const colX = [
+                    startX + 20,
+                    startX + 750,
+                    startX + 1050,
+                    startX + 1300,
+                ];
+
+                // Header Background Pill
+                ctx.fillStyle = "#f3f4f6";
                 ctx.beginPath();
-                ctx.moveTo(startX + 20, currY + rH - 25);
-                ctx.lineTo(startX + 1420, currY + rH - 25);
-                ctx.strokeStyle = "#e5e7eb";
-                ctx.lineWidth = 1;
+                if (ctx.roundRect) ctx.roundRect(startX, tableY, 1440, 80, 16);
+                else ctx.rect(startX, tableY, 1440, 80);
+                ctx.fill();
+
+                // Header Text
+                ctx.fillStyle = "#111827";
+                ctx.font = fontHead;
+                ctx.fillText("Course Title", colX[0], tableY + 50);
+                ctx.fillText("Grade", colX[1], tableY + 50);
+                ctx.fillText("Credits", colX[2], tableY + 50);
+                ctx.fillText("Points", colX[3], tableY + 50);
+
+                // --- Table Rows ---
+                let currY = tableY + 120;
+                ctx.font = fontBody;
+
+                data.forEach((row) => {
+                    ctx.fillStyle = "#374151";
+                    const lines = getLines(ctx, row.subject, 700);
+                    lines.forEach((l, idx) =>
+                        ctx.fillText(l, colX[0], currY + idx * 40),
+                    );
+
+                    ctx.fillText(row.grade, colX[1], currY);
+                    ctx.fillText(row.credits, colX[2] + 20, currY);
+                    ctx.fillText(row.gradePoints, colX[3] + 20, currY);
+
+                    const rH = lines.length * 40 + 40;
+                    ctx.beginPath();
+                    ctx.moveTo(startX + 20, currY + rH - 25);
+                    ctx.lineTo(startX + 1420, currY + rH - 25);
+                    ctx.strokeStyle = "#e5e7eb";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    currY += rH;
+                });
+
+                // --- Summary Box ---
+                currY += 50;
+                const boxY = currY;
+                const boxH = 260;
+
+                // Box Background
+                ctx.fillStyle = "#f8fafc";
+                ctx.strokeStyle = "#e2e8f0";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                if (ctx.roundRect) ctx.roundRect(startX, boxY, 1440, boxH, 32);
+                else ctx.rect(startX, boxY, 1440, boxH);
                 ctx.stroke();
-                currY += rH;
-            });
+                ctx.fill();
 
-            currY += 50;
-            const boxY = currY;
-            const boxH = 260;
-
-            ctx.fillStyle = "#f8fafc";
-            ctx.strokeStyle = "#e2e8f0";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(startX, boxY, 1440, boxH, 32); else ctx.rect(startX, boxY, 1440, boxH);
-            ctx.stroke();
-            ctx.fill();
-
-            const statY = boxY + 110;
-            ctx.fillStyle = "#64748b"; 
-            ctx.font = "bold 28px Roboto, Arial";
-            ctx.fillText("SGPA", startX + 60, statY);
-            ctx.fillStyle = "#0f172a";
-            ctx.font = "bold 80px Roboto, Arial";
-            ctx.fillText(sgpa, startX + 50, statY + 80);
-
-            ctx.beginPath();
-            ctx.moveTo(startX + 400, boxY + 40);
-            ctx.lineTo(startX + 400, boxY + boxH - 40);
-            ctx.strokeStyle = "#cbd5e1";
-            ctx.lineWidth = 2;
-            ctx.stroke();
-
-            if(newCgpa) {
-                const cgpaX = startX + 480;
-                ctx.fillStyle = "#64748b"; 
+                // SGPA Section
+                const statY = boxY + 110;
+                ctx.fillStyle = "#64748b";
                 ctx.font = "bold 28px Roboto, Arial";
-                ctx.fillText("CUMULATIVE GPA", cgpaX, statY);
-                ctx.fillStyle = "#4f46e5";
+                ctx.fillText("SGPA", startX + 60, statY);
+                ctx.fillStyle = "#0f172a";
                 ctx.font = "bold 80px Roboto, Arial";
-                ctx.fillText(newCgpa, cgpaX - 5, statY + 80);
+                ctx.fillText(sgpa, startX + 50, statY + 80);
 
-                if(!isNaN(oldCgpa)) {
-                    const diff = parseFloat(newCgpa) - parseFloat(oldCgpa);
-                    const arrowX = cgpaX + 350;
-                    const arrowY = statY + 40;
-                    if(diff !== 0) {
-                        ctx.font = "bold 40px Roboto, Arial";
-                        const isPos = diff > 0;
-                        ctx.fillStyle = isPos ? "#16a34a" : "#dc2626";
-                        ctx.beginPath();
-                        if(isPos) { ctx.moveTo(arrowX, arrowY); ctx.lineTo(arrowX + 20, arrowY - 25); ctx.lineTo(arrowX + 40, arrowY); }
-                        else { ctx.moveTo(arrowX, arrowY - 25); ctx.lineTo(arrowX + 20, arrowY); ctx.lineTo(arrowX + 40, arrowY - 25); }
-                        ctx.fill();
-                        ctx.fillText((isPos ? "+" : "") + diff.toFixed(2), arrowX + 50, arrowY);
+                // Vertical Divider
+                ctx.beginPath();
+                ctx.moveTo(startX + 400, boxY + 40);
+                ctx.lineTo(startX + 400, boxY + boxH - 40);
+                ctx.strokeStyle = "#cbd5e1";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // CGPA Section
+                if (newCgpa) {
+                    const cgpaX = startX + 480;
+                    ctx.fillStyle = "#64748b";
+                    ctx.font = "bold 28px Roboto, Arial";
+                    ctx.fillText("CUMULATIVE GPA", cgpaX, statY);
+                    ctx.fillStyle = "#4f46e5";
+                    ctx.font = "bold 80px Roboto, Arial";
+                    ctx.fillText(newCgpa, cgpaX - 5, statY + 80);
+
+                    if (!isNaN(oldCgpa)) {
+                        const diff = parseFloat(newCgpa) - parseFloat(oldCgpa);
+                        const arrowX = cgpaX + 350;
+                        const arrowY = statY + 40;
+                        if (diff !== 0) {
+                            ctx.font = "bold 40px Roboto, Arial";
+                            const isPos = diff > 0;
+                            ctx.fillStyle = isPos ? "#16a34a" : "#dc2626";
+                            ctx.beginPath();
+                            if (isPos) {
+                                ctx.moveTo(arrowX, arrowY);
+                                ctx.lineTo(arrowX + 20, arrowY - 25);
+                                ctx.lineTo(arrowX + 40, arrowY);
+                            } else {
+                                ctx.moveTo(arrowX, arrowY - 25);
+                                ctx.lineTo(arrowX + 20, arrowY);
+                                ctx.lineTo(arrowX + 40, arrowY - 25);
+                            }
+                            ctx.fill();
+                            ctx.fillText(
+                                (isPos ? "+" : "") + diff.toFixed(2),
+                                arrowX + 50,
+                                arrowY,
+                            );
+                        }
                     }
                 }
+
+                // --- Footer Details ---
+                let footerY = boxY + boxH + 60;
+
+                // LEFT SIDE: Total Credits & Points
+                ctx.textAlign = "left";
+                ctx.font = "bold 30px Roboto, Arial";
+                ctx.fillStyle = "#374151";
+                let detailsText = `Total Credits: ${totCred}    •    Total Points: ${totPts}`;
+                if (!isNaN(oldCgpa))
+                    detailsText =
+                        `Previous CGPA: ${oldCgpa}    •    ` + detailsText;
+                ctx.fillText(detailsText, startX + 20, footerY);
+
+                // RIGHT SIDE: Branding & GitHub Link
+                const rightAlignX = 1500; // Right margin anchor
+
+                // 1. "Generated by..."
+                ctx.textAlign = "right";
+                ctx.font = "italic 24px Roboto, Arial";
+                ctx.fillStyle = "#9ca3af";
+                ctx.fillText("Generated by Sriharan", rightAlignX, footerY);
+
+                // 2. GitHub Link (Underneath "Generated by")
+                const repoText = "github.com/Sriharan-S/cgpa-calculator";
+                const repoY = footerY + 45; // 45px below the first line
+
+                ctx.font = "24px Roboto, Arial";
+                ctx.fillStyle = "#4b5563";
+                ctx.fillText(repoText, rightAlignX, repoY);
+
+                // 3. GitHub Logo (To the left of the link text)
+                const textWidth = ctx.measureText(repoText).width;
+                const iconSize = 32;
+                const iconPadding = 12;
+                const iconX = rightAlignX - textWidth - iconSize - iconPadding;
+                const iconY = repoY - 26; // Align roughly with text baseline
+
+                try {
+                    if (githubImg.complete) {
+                        ctx.drawImage(
+                            githubImg,
+                            iconX,
+                            iconY,
+                            iconSize,
+                            iconSize,
+                        );
+                    }
+                } catch (e) {
+                    console.error("Logo draw error", e);
+                }
+
+                // --- Final Export ---
+                document.getElementById("download-link").href =
+                    canvas.toDataURL("image/png");
+                document.getElementById("download-link").download =
+                    `Report_${newCgpa || sgpa}.png`;
             }
 
-            let footerY = boxY + boxH + 60;
-            ctx.font = "bold 30px Roboto, Arial";
-            ctx.fillStyle = "#374151";
-            let detailsText = `Total Credits: ${totCred}    •    Total Points: ${totPts}`;
-            if (!isNaN(oldCgpa)) detailsText = `Previous CGPA: ${oldCgpa}    •    ` + detailsText;
-            ctx.fillText(detailsText, startX + 20, footerY);
-
-            ctx.font = "italic 24px Roboto, Arial";
-            ctx.fillStyle = "#9ca3af";
-            ctx.textAlign = "right";
-            ctx.fillText("Generated by Sriharan", 1500, footerY);
-            
-            document.getElementById('download-link').href = canvas.toDataURL('image/png');
-            document.getElementById('download-link').download = `Report_${newCgpa || sgpa}.png`;
-        }
-
-        function getLines(ctx, text, maxWidth) {
-            const words = text.split(" ");
-            const lines = [];
-            let currentLine = words[0];
-            for (let i = 1; i < words.length; i++) {
-                const width = ctx.measureText(currentLine + " " + words[i]).width;
-                if (width < maxWidth) currentLine += " " + words[i]; else { lines.push(currentLine); currentLine = words[i]; }
+            function getLines(ctx, text, maxWidth) {
+                const words = text.split(" ");
+                const lines = [];
+                let currentLine = words[0];
+                for (let i = 1; i < words.length; i++) {
+                    const width = ctx.measureText(
+                        currentLine + " " + words[i],
+                    ).width;
+                    if (width < maxWidth) currentLine += " " + words[i];
+                    else {
+                        lines.push(currentLine);
+                        currentLine = words[i];
+                    }
+                }
+                lines.push(currentLine);
+                return lines;
             }
-            lines.push(currentLine);
-            return lines;
-        }
 
-        if (!CanvasRenderingContext2D.prototype.roundRect) {
-            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-                if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2;
-                this.beginPath(); this.moveTo(x + r, y);
-                this.arcTo(x + w, y, x + w, y + h, r);
-                this.arcTo(x + w, y + h, x, y + h, r);
-                this.arcTo(x, y + h, x, y, r);
-                this.arcTo(x, y, x + w, y, r);
-                this.closePath(); return this;
+            if (!CanvasRenderingContext2D.prototype.roundRect) {
+                CanvasRenderingContext2D.prototype.roundRect = function (
+                    x,
+                    y,
+                    w,
+                    h,
+                    r,
+                ) {
+                    if (w < 2 * r) r = w / 2;
+                    if (h < 2 * r) r = h / 2;
+                    this.beginPath();
+                    this.moveTo(x + r, y);
+                    this.arcTo(x + w, y, x + w, y + h, r);
+                    this.arcTo(x + w, y + h, x, y + h, r);
+                    this.arcTo(x, y + h, x, y, r);
+                    this.arcTo(x, y, x + w, y, r);
+                    this.closePath();
+                    return this;
+                };
             }
-        }
-    </script>
-</body>
+        </script>
+    </body>
 </html>
