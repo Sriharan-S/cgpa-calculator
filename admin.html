@@ -35,202 +35,315 @@
     <div id="semesters-container" class="space-y-8"></div>
 
     <script>
-        // CONFIGURATION: Replace with your Worker URL
-        const WORKER_URL = "https://sgpa.sriharan2544.workers.dev";
-        let courseData = {};
+    // CONFIGURATION: Replace with your actual Worker URL
+    const WORKER_URL = "https://sgpa.sriharan2544.workers.dev";
+    
+    let courseData = {};
 
-        // --- AUTH & LOAD ---
-        async function loadData() {
-            const pwd = document.getElementById('password').value;
-            const msg = document.getElementById('login-msg');
-            msg.innerText = "Authenticating...";
+    // --- AUTH & LOAD ---
+    async function loadData() {
+        const pwd = document.getElementById('password').value;
+        const msg = document.getElementById('login-msg');
+        msg.innerText = "Authenticating...";
 
-            try {
-                const res = await fetch(WORKER_URL, {
-                    method: 'GET',
-                    headers: { 'X-Admin-Password': pwd }
-                });
+        try {
+            const res = await fetch(WORKER_URL, {
+                method: 'GET',
+                headers: { 'X-Admin-Password': pwd }
+            });
 
-                if (res.status === 401) throw new Error("Incorrect Password");
-                if (!res.ok) throw new Error("Server Error");
+            if (res.status === 401) throw new Error("Incorrect Password");
+            if (!res.ok) throw new Error("Server Error");
 
-                const data = await res.json();
-                
-                // Decode content
-                const content = decodeURIComponent(escape(window.atob(data.content)));
-                courseData = JSON.parse(content);
-                
-                renderUI();
-                document.getElementById('login-overlay').classList.add('hidden');
-            } catch (e) {
-                msg.innerText = e.message;
-            }
+            const data = await res.json();
+            
+            // Decode content
+            const content = decodeURIComponent(escape(window.atob(data.content)));
+            courseData = JSON.parse(content);
+            
+            renderUI();
+            document.getElementById('login-overlay').classList.add('hidden');
+        } catch (e) {
+            msg.innerText = e.message;
         }
+    }
 
-        // --- RENDERING UI ---
-        function renderUI() {
-            const container = document.getElementById('semesters-container');
-            container.innerHTML = '';
+    // --- RENDERING UI ---
+    function renderUI() {
+        const container = document.getElementById('semesters-container');
+        container.innerHTML = '';
 
-            // Convert object to array, sort by sem_number, then loop
-            Object.keys(courseData).forEach(key => {
-                const sem = courseData[key];
-                const semDiv = document.createElement('div');
-                semDiv.className = "card p-6 relative";
-                semDiv.dataset.id = key; // Store original ID
+        // 1. Convert Object to Array to allow sorting/ordering
+        let sortedKeys = Object.keys(courseData).sort((a, b) => {
+            return courseData[a].sem_number - courseData[b].sem_number;
+        });
 
-                semDiv.innerHTML = `
-                    <button onclick="deleteSemester('${key}')" class="absolute top-4 right-4 text-gray-500 hover:text-red-500 transition">
+        sortedKeys.forEach((key, index) => {
+            const sem = courseData[key];
+            const semDiv = document.createElement('div');
+            semDiv.className = "card p-6 relative group transition hover:border-gray-500";
+            
+            // Move Up/Down Buttons for Semester
+            const isFirst = index === 0;
+            const isLast = index === sortedKeys.length - 1;
+
+            semDiv.innerHTML = `
+                <div class="absolute top-4 right-4 flex gap-2">
+                    <div class="flex gap-1 bg-gray-800 rounded-lg p-1 mr-4 border border-gray-700">
+                        <button onclick="moveSemester('${key}', -1)" ${isFirst ? 'disabled class="opacity-30 cursor-not-allowed px-2"' : 'class="hover:text-indigo-400 px-2"'} title="Move Up">↑</button>
+                        <button onclick="moveSemester('${key}', 1)" ${isLast ? 'disabled class="opacity-30 cursor-not-allowed px-2"' : 'class="hover:text-indigo-400 px-2"'} title="Move Down">↓</button>
+                    </div>
+
+                    <button onclick="deleteSemester('${key}')" class="text-gray-500 hover:text-red-500 transition" title="Delete Semester">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6 pr-10">
-                        <div class="md:col-span-8">
-                            <label class="block text-xs text-gray-400 mb-1">Semester Name</label>
-                            <input type="text" value="${sem.name}" class="input-dark font-bold text-lg" onchange="updateSemField('${key}', 'name', this.value)">
-                        </div>
-                        <div class="md:col-span-4">
-                            <label class="block text-xs text-gray-400 mb-1">Semester Number</label>
-                            <input type="number" value="${sem.sem_number}" class="input-dark" onchange="updateSemField('${key}', 'sem_number', parseInt(this.value))">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div class="bg-[#111827] p-4 rounded-lg border border-gray-700">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-indigo-400 font-medium text-sm uppercase tracking-wide">Required Subjects</h3>
-                                <button onclick="addSubject('${key}')" class="btn-green">+ Add</button>
-                            </div>
-                            <div id="req-list-${key}" class="space-y-2">
-                                ${Object.entries(sem.required).map(([subName, credits]) => `
-                                    <div class="flex gap-2">
-                                        <input type="text" placeholder="Subject Name" value="${subName}" class="input-dark flex-grow text-sm" onchange="updateSubjectName('${key}', '${subName}', this.value)">
-                                        <input type="number" placeholder="Cr" value="${credits}" class="input-dark w-16 text-center text-sm" onchange="updateSubjectCredit('${key}', '${subName}', this.value)">
-                                        <button onclick="deleteSubject('${key}', '${subName}')" class="text-gray-500 hover:text-red-500 p-2">✕</button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-
-                        <div class="bg-[#111827] p-4 rounded-lg border border-gray-700">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-orange-400 font-medium text-sm uppercase tracking-wide">Electives / Optional</h3>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs text-gray-500">Credits:</span>
-                                    <input type="number" value="${sem.elective_credit}" class="input-dark w-12 text-center py-1 h-7 text-xs" onchange="updateSemField('${key}', 'elective_credit', parseInt(this.value))">
-                                    <button onclick="addOptional('${key}')" class="btn-green ml-2">+ Add</button>
-                                </div>
-                            </div>
-                            <div id="opt-list-${key}" class="space-y-2">
-                                ${sem.optional.map((optName, idx) => `
-                                    <div class="flex gap-2">
-                                        <input type="text" value="${optName}" class="input-dark flex-grow text-sm" onchange="updateOptionalName('${key}', ${idx}, this.value)">
-                                        <button onclick="deleteOptional('${key}', ${idx})" class="text-gray-500 hover:text-red-500 p-2">✕</button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(semDiv);
-            });
-        }
-
-        // --- DATA MANIPULATION HANDLERS ---
-        
-        function updateSemField(id, field, value) {
-            courseData[id][field] = value;
-        }
-
-        function updateSubjectName(id, oldName, newName) {
-            if(oldName === newName) return;
-            const credits = courseData[id].required[oldName];
-            delete courseData[id].required[oldName];
-            courseData[id].required[newName] = credits;
-            renderUI(); // Re-render to sort keys or update DOM
-        }
-
-        function updateSubjectCredit(id, name, credits) {
-            courseData[id].required[name] = parseFloat(credits);
-        }
-
-        function deleteSubject(id, name) {
-            if(confirm(`Delete ${name}?`)) {
-                delete courseData[id].required[name];
-                renderUI();
-            }
-        }
-
-        function addSubject(id) {
-            const name = prompt("Enter Subject Name:");
-            if(name) {
-                courseData[id].required[name] = 3; // Default credit
-                renderUI();
-            }
-        }
-
-        function updateOptionalName(id, idx, value) {
-            courseData[id].optional[idx] = value;
-        }
-
-        function deleteOptional(id, idx) {
-            courseData[id].optional.splice(idx, 1);
-            renderUI();
-        }
-
-        function addOptional(id) {
-            courseData[id].optional.push("New Elective Subject");
-            renderUI();
-        }
-
-        function addNewSemester() {
-            const newId = Date.now().toString(); // Simple unique ID
-            courseData[newId] = {
-                name: "New Semester",
-                sem_number: 0,
-                required: {},
-                optional: [],
-                elective_credit: 0
-            };
-            renderUI();
-        }
-
-        function deleteSemester(id) {
-            if(confirm("Are you sure you want to delete this entire semester?")) {
-                delete courseData[id];
-                renderUI();
-            }
-        }
-
-        // --- SAVING ---
-        async function saveData() {
-            const pwd = document.getElementById('password').value;
-            const btn = document.querySelector('button[onclick="saveData()"]');
-            const originalText = btn.innerText;
-            btn.innerText = "Saving...";
-            
-            // Encode to Base64 (UTF-8 safe)
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(courseData, null, 2))));
-
-            try {
-                const res = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-Admin-Password': pwd
-                    },
-                    body: JSON.stringify({ content: content })
-                });
-
-                if(!res.ok) throw new Error("Save Failed");
+                </div>
                 
-                alert("Saved successfully!");
-            } catch (e) {
-                alert("Error: " + e.message);
-            } finally {
-                btn.innerText = originalText;
-            }
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6 pr-32">
+                    <div class="md:col-span-8">
+                        <label class="block text-xs text-gray-400 mb-1">Semester Name</label>
+                        <input type="text" value="${sem.name}" class="input-dark font-bold text-lg" onchange="updateSemField('${key}', 'name', this.value)">
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs text-gray-400 mb-1">Sem No. (Sort Order)</label>
+                        <input type="number" value="${sem.sem_number}" class="input-dark" onchange="updateSemField('${key}', 'sem_number', parseInt(this.value))">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-[#111827] p-4 rounded-lg border border-gray-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-indigo-400 font-medium text-sm uppercase tracking-wide">Required Subjects</h3>
+                            <button onclick="addSubject('${key}')" class="btn-green">+ Add</button>
+                        </div>
+                        <div id="req-list-${key}" class="space-y-2">
+                            ${renderSubjects(key, sem.required)}
+                        </div>
+                    </div>
+
+                    <div class="bg-[#111827] p-4 rounded-lg border border-gray-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-orange-400 font-medium text-sm uppercase tracking-wide">Electives / Optional</h3>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-gray-500">Credits:</span>
+                                <input type="number" value="${sem.elective_credit}" class="input-dark w-12 text-center py-1 h-7 text-xs" onchange="updateSemField('${key}', 'elective_credit', parseInt(this.value))">
+                                <button onclick="addOptional('${key}')" class="btn-green ml-2">+ Add</button>
+                            </div>
+                        </div>
+                        <div id="opt-list-${key}" class="space-y-2">
+                            ${renderOptionals(key, sem.optional)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(semDiv);
+        });
+    }
+
+    function renderSubjects(semKey, requiredObj) {
+        // Convert object to array of [name, credits]
+        const subjects = Object.entries(requiredObj);
+        
+        if (subjects.length === 0) return '<div class="text-gray-600 text-xs italic p-2">No subjects yet</div>';
+
+        return subjects.map(([subName, credits], idx) => {
+            const isFirst = idx === 0;
+            const isLast = idx === subjects.length - 1;
+
+            return `
+            <div class="flex gap-2 items-center group">
+                <div class="flex flex-col gap-0.5 text-[10px] text-gray-500 w-4">
+                    <button onclick="moveSubject('${semKey}', '${subName}', -1)" ${isFirst ? 'disabled class="opacity-20"' : 'class="hover:text-white"'} title="Up">▲</button>
+                    <button onclick="moveSubject('${semKey}', '${subName}', 1)" ${isLast ? 'disabled class="opacity-20"' : 'class="hover:text-white"'} title="Down">▼</button>
+                </div>
+                <input type="text" placeholder="Subject Name" value="${subName}" class="input-dark flex-grow text-sm" onchange="updateSubjectName('${semKey}', '${subName}', this.value)">
+                <input type="number" placeholder="Cr" value="${credits}" class="input-dark w-14 text-center text-sm" onchange="updateSubjectCredit('${semKey}', '${subName}', this.value)">
+                <button onclick="deleteSubject('${semKey}', '${subName}')" class="text-gray-500 hover:text-red-500 p-2">✕</button>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function renderOptionals(semKey, optionalArr) {
+        if (optionalArr.length === 0) return '<div class="text-gray-600 text-xs italic p-2">No electives yet</div>';
+
+        return optionalArr.map((optName, idx) => `
+            <div class="flex gap-2 items-center">
+                <div class="flex flex-col gap-0.5 text-[10px] text-gray-500 w-4">
+                     <button onclick="moveOptional('${semKey}', ${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-20"' : 'class="hover:text-white"'} title="Up">▲</button>
+                     <button onclick="moveOptional('${semKey}', ${idx}, 1)" ${idx === optionalArr.length - 1 ? 'disabled class="opacity-20"' : 'class="hover:text-white"'} title="Down">▼</button>
+                </div>
+                <input type="text" value="${optName}" class="input-dark flex-grow text-sm" onchange="updateOptionalName('${semKey}', ${idx}, this.value)">
+                <button onclick="deleteOptional('${semKey}', ${idx})" class="text-gray-500 hover:text-red-500 p-2">✕</button>
+            </div>
+        `).join('');
+    }
+
+    // --- REORDER LOGIC ---
+
+    function moveSemester(key, direction) {
+        // We use sem_number to determine order. We just swap the numbers.
+        const allKeys = Object.keys(courseData).sort((a, b) => courseData[a].sem_number - courseData[b].sem_number);
+        const currentIndex = allKeys.indexOf(key);
+        const targetIndex = currentIndex + direction;
+
+        if (targetIndex >= 0 && targetIndex < allKeys.length) {
+            const targetKey = allKeys[targetIndex];
+            
+            // Swap sem_number values
+            const tempNum = courseData[key].sem_number;
+            courseData[key].sem_number = courseData[targetKey].sem_number;
+            courseData[targetKey].sem_number = tempNum;
+            
+            renderUI();
         }
-    </script>
+    }
+
+    function moveSubject(semKey, subName, direction) {
+        // Objects in JS don't guarantee order, BUT most modern engines respect insertion order.
+        // To reorder, we must rebuild the object.
+        const requiredObj = courseData[semKey].required;
+        const entries = Object.entries(requiredObj);
+        
+        const currentIndex = entries.findIndex(([k, v]) => k === subName);
+        const targetIndex = currentIndex + direction;
+
+        if (targetIndex >= 0 && targetIndex < entries.length) {
+            // Swap in array
+            const temp = entries[currentIndex];
+            entries[currentIndex] = entries[targetIndex];
+            entries[targetIndex] = temp;
+
+            // Rebuild object
+            const newRequired = {};
+            entries.forEach(([k, v]) => newRequired[k] = v);
+            courseData[semKey].required = newRequired;
+
+            renderUI();
+        }
+    }
+
+    function moveOptional(semKey, index, direction) {
+        // Arrays are easy to reorder
+        const arr = courseData[semKey].optional;
+        const targetIndex = index + direction;
+
+        if (targetIndex >= 0 && targetIndex < arr.length) {
+            const temp = arr[index];
+            arr[index] = arr[targetIndex];
+            arr[targetIndex] = temp;
+            renderUI();
+        }
+    }
+
+    // --- EXISTING HANDLERS ---
+    
+    function updateSemField(id, field, value) {
+        courseData[id][field] = value;
+        if(field === 'sem_number') renderUI(); // Re-sort if number changes
+    }
+
+    function updateSubjectName(id, oldName, newName) {
+        if(oldName === newName) return;
+        
+        // Preserve order by manipulating entries
+        const entries = Object.entries(courseData[id].required);
+        const index = entries.findIndex(([k]) => k === oldName);
+        if (index !== -1) {
+            entries[index][0] = newName; // Rename key
+            
+            // Rebuild
+            const newReq = {};
+            entries.forEach(([k, v]) => newReq[k] = v);
+            courseData[id].required = newReq;
+            renderUI();
+        }
+    }
+
+    function updateSubjectCredit(id, name, credits) {
+        courseData[id].required[name] = parseFloat(credits);
+    }
+
+    function deleteSubject(id, name) {
+        if(confirm(`Delete ${name}?`)) {
+            delete courseData[id].required[name];
+            renderUI();
+        }
+    }
+
+    function addSubject(id) {
+        const name = prompt("Enter Subject Name:");
+        if(name) {
+            // Add to end
+            courseData[id].required[name] = 3; 
+            renderUI();
+        }
+    }
+
+    function updateOptionalName(id, idx, value) {
+        courseData[id].optional[idx] = value;
+    }
+
+    function deleteOptional(id, idx) {
+        courseData[id].optional.splice(idx, 1);
+        renderUI();
+    }
+
+    function addOptional(id) {
+        courseData[id].optional.push("New Elective");
+        renderUI();
+    }
+
+    function addNewSemester() {
+        const newId = Date.now().toString();
+        // Find max sem_number to append to end
+        let maxNum = 0;
+        Object.values(courseData).forEach(s => maxNum = Math.max(maxNum, s.sem_number || 0));
+
+        courseData[newId] = {
+            name: "New Semester",
+            sem_number: maxNum + 1,
+            required: {},
+            optional: [],
+            elective_credit: 0
+        };
+        renderUI();
+    }
+
+    function deleteSemester(id) {
+        if(confirm("Delete entire semester?")) {
+            delete courseData[id];
+            renderUI();
+        }
+    }
+
+    // --- SAVING ---
+    async function saveData() {
+        const pwd = document.getElementById('password').value;
+        const btn = document.querySelector('button[onclick="saveData()"]');
+        const originalText = btn.innerText;
+        btn.innerText = "Saving...";
+        
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(courseData, null, 2))));
+
+        try {
+            const res = await fetch(WORKER_URL, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-Admin-Password': pwd
+                },
+                body: JSON.stringify({ content: content })
+            });
+
+            if(!res.ok) throw new Error("Save Failed");
+            alert("Saved successfully!");
+        } catch (e) {
+            alert("Error: " + e.message);
+        } finally {
+            btn.innerText = originalText;
+        }
+    }
+</script>
 </body>
 </html>
