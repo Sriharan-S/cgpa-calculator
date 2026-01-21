@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>CGPA Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            font-family: 'Roboto', sans-serif; 
+            background-color: #121212; 
+            color: #e2e2e2;
+            -webkit-tap-highlight-color: transparent;
+            overscroll-behavior-y: none;
+            height: 100dvh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Material Input Style */
+        .mat-input-container {
+            position: relative;
+            background-color: #2c2c2c;
+            border-radius: 16px 16px 0 0;
+            border-bottom: 2px solid #555;
+            transition: background-color 0.2s;
+        }
+        .mat-input-container:focus-within {
+            background-color: #383838;
+            border-bottom-color: #818cf8;
+        }
+
+        /* Bottom Sheet & Overlay */
+        .sheet-overlay {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        
+        @media (min-width: 768px) {
+            .sheet-overlay {
+                align-items: center; 
+                padding: 2rem;
+            }
+        }
+
+        .sheet-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .bottom-sheet {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.2, 0.0, 0, 1.0);
+            max-height: 90dvh;
+            width: 100%;
+        }
+        
+        @media (min-width: 768px) {
+            .bottom-sheet {
+                transform: scale(0.95);
+                opacity: 0;
+                border-radius: 24px !important;
+                max-width: 42rem;
+                max-height: 85vh;
+            }
+        }
+
+        .sheet-overlay.active .bottom-sheet {
+            transform: translateY(0);
+        }
+
+        @media (min-width: 768px) {
+            .sheet-overlay.active .bottom-sheet {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 3px; }
+
+        /* Animation for Grade Pop */
+        @keyframes pop {
+            0% { transform: scale(0.95); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .grade-pop { animation: pop 0.2s ease-out forwards; }
+    </style>
+</head>
+<body>
+
+    <header class="flex-none w-full flex items-center justify-between px-5 py-4 bg-[#1e1e1e] shadow-md z-30">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-300">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+            </div>
+            <h1 class="text-xl font-medium tracking-wide">CGPA Calc</h1>
+        </div>
+        <button onclick="resetApp()" id="reset-btn" class="hidden text-sm font-medium text-indigo-300 bg-indigo-500/10 px-4 py-2 rounded-full active:bg-indigo-500/20 transition hover:bg-indigo-500/30">
+            Change Sem
+        </button>
+    </header>
+
+    <main class="flex-1 relative w-full h-full overflow-hidden">
+        
+        <div id="selection-view" class="absolute inset-0 flex flex-col justify-center items-center p-6 transition-transform duration-300 ease-in-out z-10 h-full">
+            <h2 class="text-3xl font-normal text-center mb-2">Welcome</h2>
+            <p class="text-gray-400 text-center mb-10 text-sm">Select your semester to begin</p>
+            <div class="w-full max-w-sm space-y-4">
+                <div class="relative">
+                    <select id="course-set-select" class="appearance-none w-full bg-[#2c2c2c] text-white text-lg p-5 rounded-3xl outline-none border border-transparent focus:border-indigo-500/50 shadow-lg cursor-pointer hover:bg-[#333]">
+                        <option value="" disabled selected>Loading Semesters...</option>
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-6 flex items-center text-gray-400">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="calculator-view" class="absolute inset-0 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col bg-[#121212] z-20 h-full">
+            
+            <div class="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-6 max-w-3xl mx-auto w-full custom-scroll">
+                
+                <div class="bg-[#1e1e1e] p-5 rounded-3xl shadow-sm">
+                    <label class="text-indigo-200 text-sm font-medium mb-1 block">Previous CGPA (Optional)</label>
+                    <div class="mat-input-container flex items-center px-4">
+                        <input type="number" id="old-cgpa" step="0.01" placeholder="e.g. 8.5" class="w-full bg-transparent py-4 text-lg outline-none text-white placeholder-gray-500">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between px-2">
+                    <span class="text-sm font-bold text-gray-400 uppercase tracking-widest">Subjects</span>
+                    <span class="text-xs text-gray-600 bg-gray-800 px-2 py-1 rounded-md">Credits</span>
+                </div>
+
+                <div id="courses-container" class="space-y-3"></div>
+
+                <div id="elective-container" class="hidden bg-[#1e1e1e] p-5 rounded-3xl border border-indigo-500/20">
+                    <span class="text-indigo-300 text-sm font-medium uppercase tracking-wide mb-3 block">Open Elective</span>
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="relative flex-1">
+                            <select id="elective-select" class="appearance-none w-full bg-[#2c2c2c] text-gray-200 text-sm p-4 pr-8 rounded-2xl outline-none cursor-pointer border border-transparent focus:border-indigo-500/50">
+                                <option value="" disabled selected>Select Subject</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-gray-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></div>
+                        </div>
+                        
+                        <div id="elective-grade-wrapper" class="hidden relative w-14 h-14 shrink-0">
+                            <div id="elective-grade-label" class="w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-300">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                            <select id="elective-grade" class="course-grade-select absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="updateGradeLabel(this, 'elective-grade-label')">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="h-6"></div>
+            </div>
+
+            <div class="flex-none p-5 pb-8 bg-[#121212] border-t border-gray-800 z-30 flex justify-center">
+                <button onclick="calculateAndGenerate()" class="w-full max-w-md bg-[#b5c7fc] text-[#001d33] font-bold text-lg py-4 rounded-full shadow-xl shadow-indigo-900/40 active:scale-95 transition-transform flex items-center justify-center gap-2 hover:bg-[#a0b5f5]">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                    View Report
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="sheet-overlay" class="fixed inset-0 z-50 sheet-overlay bg-black/60 backdrop-blur-sm">
+        <div class="absolute inset-0" onclick="closeSheet()"></div>
+        <div class="bg-[#1e1e1e] rounded-t-[32px] md:rounded-[24px] bottom-sheet flex flex-col shadow-2xl overflow-hidden relative z-10">
+            <div class="w-full flex justify-center pt-4 pb-2 shrink-0 md:hidden" onclick="closeSheet()">
+                <div class="w-12 h-1.5 bg-gray-600 rounded-full"></div>
+            </div>
+            <button onclick="closeSheet()" class="absolute top-4 right-4 hidden md:flex w-8 h-8 items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+            <div class="flex-1 overflow-y-auto p-6 pb-10 flex flex-col items-center custom-scroll">
+                <h2 class="text-2xl font-bold text-white mb-6 md:mt-2">Results</h2>
+                <div class="flex w-full gap-4 mb-4 max-w-lg">
+                    <div class="flex-1 bg-[#2c2c2c] p-5 rounded-3xl text-center">
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">SGPA</p>
+                        <p id="res-sgpa" class="text-4xl font-bold text-[#b5c7fc]">--</p>
+                    </div>
+                    <div class="flex-1 bg-[#2c2c2c] p-5 rounded-3xl text-center relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-16 h-16 bg-indigo-500/10 rounded-full -mr-8 -mt-8"></div>
+                        <p class="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">New CGPA</p>
+                        <p id="res-cgpa" class="text-4xl font-bold text-white">--</p>
+                    </div>
+                </div>
+                <div class="flex w-full gap-4 mb-6 max-w-lg">
+                    <div class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700">
+                        <p class="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Credits</p>
+                        <p id="res-credits" class="text-xl font-bold text-gray-200">--</p>
+                    </div>
+                    <div class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700">
+                        <p class="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Points</p>
+                        <p id="res-points" class="text-xl font-bold text-gray-200">--</p>
+                    </div>
+                    <div id="res-old-container" class="flex-1 bg-[#252525] p-3 rounded-2xl text-center border border-gray-700 hidden">
+                        <p class="text-gray-500 text-[10px] font-bold uppercase mb-0.5">Old CGPA</p>
+                        <p id="res-old-cgpa" class="text-xl font-bold text-gray-200">--</p>
+                    </div>
+                </div>
+                <p class="w-full max-w-lg text-left text-xs text-gray-500 mb-2 pl-2">Generated Report:</p>
+                <div class="w-full max-w-2xl bg-white rounded-3xl overflow-hidden shadow-lg mb-6 flex-shrink-0 border-4 border-white">
+                    <canvas id="report-canvas" class="w-full h-auto block"></canvas>
+                </div>
+                <a id="download-link" class="w-full max-w-sm bg-[#4f378b] text-white font-medium py-4 rounded-full text-center shadow-lg active:scale-95 transition-transform hover:bg-[#6042a6] shrink-0">
+                    Download Report Image
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gradePoints = { 'O': 10, 'A+': 9, 'A': 8, 'B+': 7, 'B': 6, 'C': 5, 'U': 0 };
+        
+        // Define vibrant colors for each grade with matching colored shadows
+        const gradeColors = {
+            'O': 'bg-emerald-500 shadow-emerald-500/40',  // Outstanding - Emerald
+            'A+': 'bg-green-500 shadow-green-500/40',     // Excellent - Green
+            'A': 'bg-lime-600 shadow-lime-600/40',        // Very Good - Lime
+            'B+': 'bg-yellow-500 shadow-yellow-500/40',   // Good - Yellow
+            'B': 'bg-orange-500 shadow-orange-500/40',    // Above Average - Orange
+            'C': 'bg-red-400 shadow-red-400/40',          // Average - Light Red
+            'U': 'bg-red-700 shadow-red-700/40'           // Fail - Dark Red
+        };
+
+        const gradeOptionsHTML = `<option value="" disabled selected></option>` + 
+            Object.keys(gradePoints).map(g => `<option value="${g}">${g}</option>`).join('');
+
+        // --- NEW: Dynamic Data Loader ---
+        let courseSets = {}; 
+        
+        async function initApp() {
+            try {
+                // Fetch the JSON file from the same directory
+                // To force a refresh of the JSON file (avoid browser caching), we add a timestamp
+                const response = await fetch('data.json?t=' + new Date().getTime());
+                
+                if (!response.ok) throw new Error("Could not load course data");
+                
+                courseSets = await response.json();
+                
+                // Populate the dropdown AFTER data is loaded
+                const selectEl = document.getElementById('course-set-select');
+                selectEl.innerHTML = '<option value="" disabled selected>Choose Semester...</option>';
+                
+                // Sort keys to ensure order if necessary, or just iterate
+                Object.keys(courseSets).forEach(id => {
+                    const opt = document.createElement('option');
+                    opt.value = id; 
+                    opt.textContent = courseSets[id].name;
+                    selectEl.appendChild(opt);
+                });
+                
+                // Re-attach event listener
+                selectEl.addEventListener('change', (e) => loadSemester(e.target.value));
+
+            } catch (e) {
+                console.error(e);
+                const selectEl = document.getElementById('course-set-select');
+                selectEl.innerHTML = '<option value="" disabled selected>Error loading data</option>';
+                alert("Error loading course data. Make sure data.json exists.");
+            }
+        }
+
+        // Call initialization immediately
+        initApp();
+
+        let currentSetId = null;
+        const selectEl = document.getElementById('course-set-select');
+
+        // Function to update the visual grade button with Colors
+        function updateGradeLabel(selectElement, labelId) {
+            const label = document.getElementById(labelId);
+            const value = selectElement.value;
+            
+            if (value) {
+                // Get the color class based on the grade, default to indigo if undefined
+                const colorClass = gradeColors[value] || 'bg-indigo-600 shadow-indigo-600/40';
+                
+                // Apply Active State
+                label.className = `w-full h-full rounded-2xl ${colorClass} text-white font-bold text-lg flex items-center justify-center shadow-lg grade-pop transition-all duration-300`;
+                label.innerText = value;
+                
+                // Remove animation class after playing
+                setTimeout(() => label.classList.remove('grade-pop'), 200);
+            } else {
+                // Default State (Icon Shown)
+                label.className = "w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-200";
+                label.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>`;
+            }
+        }
+
+        function loadSemester(setId) {
+            currentSetId = setId;
+            const set = courseSets[setId];
+            const container = document.getElementById('courses-container');
+            container.innerHTML = ''; 
+
+            for (const [course, credit] of Object.entries(set.required)) {
+                // Generate a unique ID for the label to update
+                const labelId = `label-${course.replace(/[^a-zA-Z0-9]/g, '-')}-${Math.random().toString(36).substr(2, 5)}`;
+                
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-1";
+                row.innerHTML = `
+                    <div class="flex-1 pr-4">
+                        <h3 class="text-base font-medium text-gray-200 leading-snug">${course}</h3>
+                        <p class="text-xs text-gray-500 mt-1 font-medium tracking-wide">${credit} CREDITS</p>
+                    </div>
+                    <div class="relative w-14 h-14 shrink-0">
+                        <div id="${labelId}" class="w-full h-full rounded-2xl bg-[#2c2c2c] flex items-center justify-center text-gray-400 border border-gray-700 transition-all duration-200 shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        <select 
+                            name="${course}" 
+                            data-credit="${credit}" 
+                            class="course-grade-select absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onchange="updateGradeLabel(this, '${labelId}')"
+                        >
+                            ${gradeOptionsHTML}
+                        </select>
+                    </div>
+                `;
+                container.appendChild(row);
+            }
+
+            const elContainer = document.getElementById('elective-container');
+            const elSelect = document.getElementById('elective-select');
+            const elGradeWrap = document.getElementById('elective-grade-wrapper');
+            const elGrade = document.getElementById('elective-grade');
+
+            if (set.optional && set.optional.length > 0) {
+                elContainer.classList.remove('hidden');
+                elSelect.innerHTML = `<option value="" disabled selected>Select Subject</option>` + set.optional.map(c => `<option value="${c}">${c}</option>`).join('');
+                elSelect.onchange = function() { 
+                    if (this.value) { 
+                        elGradeWrap.classList.remove('hidden'); 
+                        elGrade.innerHTML = gradeOptionsHTML; 
+                        // Reset the elective label visual if re-selecting
+                        updateGradeLabel(elGrade, 'elective-grade-label');
+                    } 
+                };
+            } else { elContainer.classList.add('hidden'); }
+
+            document.getElementById('selection-view').style.transform = "translateX(-100%)";
+            document.getElementById('calculator-view').style.transform = "translateX(0)";
+            document.getElementById('reset-btn').classList.remove('hidden');
+        }
+
+        function resetApp() {
+            currentSetId = null;
+            document.getElementById('selection-view').style.transform = "translateX(0)";
+            document.getElementById('calculator-view').style.transform = "translateX(100%)";
+            document.getElementById('reset-btn').classList.add('hidden');
+            selectEl.value = "";
+            closeSheet();
+        }
+
+        function closeSheet() {
+            document.getElementById('sheet-overlay').classList.remove('active');
+        }
+
+        function calculateAndGenerate() {
+            const set = courseSets[currentSetId];
+            let totalCredits = 0, totalPoints = 0, reportData = [];
+            let filled = false;
+
+            document.querySelectorAll('.course-grade-select').forEach(input => {
+                if(input.value) {
+                    filled = true;
+                    const cred = parseFloat(input.getAttribute('data-credit'));
+                    const pts = gradePoints[input.value] * cred;
+                    totalCredits += cred; totalPoints += pts;
+                    reportData.push({ subject: input.name, grade: input.value, credits: cred, gradePoints: pts });
+                }
+            });
+
+            const elName = document.getElementById('elective-select').value;
+            const elGrade = document.getElementById('elective-grade').value;
+            if(set.optional && set.optional.length > 0 && elName && elGrade) {
+                filled = true;
+                const cred = set.elective_credit;
+                const pts = gradePoints[elGrade] * cred;
+                totalCredits += cred; totalPoints += pts;
+                reportData.push({ subject: elName, grade: elGrade, credits: cred, gradePoints: pts });
+            }
+
+            if(!filled) { alert("Please enter grades."); return; }
+
+            const sgpa = (totalPoints / totalCredits).toFixed(2);
+            let oldCgpa = parseFloat(document.getElementById('old-cgpa').value);
+            let newCgpa = null;
+            if(!isNaN(oldCgpa) && set.sem_number > 1) {
+                newCgpa = (((oldCgpa * (set.sem_number - 1)) + parseFloat(sgpa)) / set.sem_number).toFixed(2);
+            }
+
+            // Stats Update
+            document.getElementById('res-sgpa').textContent = sgpa;
+            document.getElementById('res-cgpa').textContent = newCgpa ? newCgpa : "--";
+            document.getElementById('res-credits').textContent = totalCredits;
+            document.getElementById('res-points').textContent = totalPoints;
+
+            const oldContainer = document.getElementById('res-old-container');
+            if(!isNaN(oldCgpa)) {
+                oldContainer.classList.remove('hidden');
+                document.getElementById('res-old-cgpa').textContent = oldCgpa;
+            } else {
+                oldContainer.classList.add('hidden');
+            }
+            
+            drawReportCard(reportData, totalCredits, totalPoints, sgpa, oldCgpa, newCgpa);
+            document.getElementById('sheet-overlay').classList.add('active');
+        }
+
+        function drawReportCard(data, totCred, totPts, sgpa, oldCgpa, newCgpa) {
+            const canvas = document.getElementById('report-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const dummyCtx = document.createElement('canvas').getContext('2d');
+            dummyCtx.font = "30px Roboto, Arial"; 
+            let totalTextLines = 0;
+            data.forEach(row => totalTextLines += getLines(dummyCtx, row.subject, 700).length);
+
+            const headerHeight = 350; 
+            const rowBaseHeight = 40;
+            const textLineHeight = 40; 
+            const summaryHeight = 450;
+            
+            canvas.width = 1600;
+            canvas.height = headerHeight + (totalTextLines * textLineHeight) + (data.length * rowBaseHeight) + summaryHeight;
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            const fontTitle = "bold 50px Roboto, Arial";
+            const fontSub = "30px Roboto, Arial";
+            const fontHead = "bold 32px Roboto, Arial";
+            const fontBody = "30px Roboto, Arial";
+            const startX = 80, startY = 80;
+
+            ctx.fillStyle = "#1e1e1e";
+            ctx.font = fontTitle;
+            ctx.fillText("Academic Report", startX, startY + 50);
+            ctx.fillStyle = "#757575";
+            ctx.font = fontSub;
+            const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+            ctx.fillText(today, startX, startY + 100);
+
+            const tableY = startY + 180;
+            const colX = [startX + 20, startX + 750, startX + 1050, startX + 1300];
+            
+            ctx.fillStyle = "#f3f4f6";
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(startX, tableY, 1440, 80, 16); else ctx.rect(startX, tableY, 1440, 80);
+            ctx.fill();
+
+            ctx.fillStyle = "#111827";
+            ctx.font = fontHead;
+            ctx.fillText("Course Title", colX[0], tableY + 50);
+            ctx.fillText("Grade", colX[1], tableY + 50);
+            ctx.fillText("Credits", colX[2], tableY + 50);
+            ctx.fillText("Points", colX[3], tableY + 50);
+
+            let currY = tableY + 120;
+            ctx.font = fontBody;
+
+            data.forEach((row) => {
+                ctx.fillStyle = "#374151";
+                const lines = getLines(ctx, row.subject, 700);
+                lines.forEach((l, idx) => ctx.fillText(l, colX[0], currY + (idx * 40)));
+                ctx.fillText(row.grade, colX[1], currY);
+                ctx.fillText(row.credits, colX[2] + 20, currY);
+                ctx.fillText(row.gradePoints, colX[3] + 20, currY);
+
+                const rH = (lines.length * 40) + 40;
+                ctx.beginPath();
+                ctx.moveTo(startX + 20, currY + rH - 25);
+                ctx.lineTo(startX + 1420, currY + rH - 25);
+                ctx.strokeStyle = "#e5e7eb";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                currY += rH;
+            });
+
+            currY += 50;
+            const boxY = currY;
+            const boxH = 260;
+
+            ctx.fillStyle = "#f8fafc";
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(startX, boxY, 1440, boxH, 32); else ctx.rect(startX, boxY, 1440, boxH);
+            ctx.stroke();
+            ctx.fill();
+
+            const statY = boxY + 110;
+            ctx.fillStyle = "#64748b"; 
+            ctx.font = "bold 28px Roboto, Arial";
+            ctx.fillText("SGPA", startX + 60, statY);
+            ctx.fillStyle = "#0f172a";
+            ctx.font = "bold 80px Roboto, Arial";
+            ctx.fillText(sgpa, startX + 50, statY + 80);
+
+            ctx.beginPath();
+            ctx.moveTo(startX + 400, boxY + 40);
+            ctx.lineTo(startX + 400, boxY + boxH - 40);
+            ctx.strokeStyle = "#cbd5e1";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            if(newCgpa) {
+                const cgpaX = startX + 480;
+                ctx.fillStyle = "#64748b"; 
+                ctx.font = "bold 28px Roboto, Arial";
+                ctx.fillText("CUMULATIVE GPA", cgpaX, statY);
+                ctx.fillStyle = "#4f46e5";
+                ctx.font = "bold 80px Roboto, Arial";
+                ctx.fillText(newCgpa, cgpaX - 5, statY + 80);
+
+                if(!isNaN(oldCgpa)) {
+                    const diff = parseFloat(newCgpa) - parseFloat(oldCgpa);
+                    const arrowX = cgpaX + 350;
+                    const arrowY = statY + 40;
+                    if(diff !== 0) {
+                        ctx.font = "bold 40px Roboto, Arial";
+                        const isPos = diff > 0;
+                        ctx.fillStyle = isPos ? "#16a34a" : "#dc2626";
+                        ctx.beginPath();
+                        if(isPos) { ctx.moveTo(arrowX, arrowY); ctx.lineTo(arrowX + 20, arrowY - 25); ctx.lineTo(arrowX + 40, arrowY); }
+                        else { ctx.moveTo(arrowX, arrowY - 25); ctx.lineTo(arrowX + 20, arrowY); ctx.lineTo(arrowX + 40, arrowY - 25); }
+                        ctx.fill();
+                        ctx.fillText((isPos ? "+" : "") + diff.toFixed(2), arrowX + 50, arrowY);
+                    }
+                }
+            }
+
+            let footerY = boxY + boxH + 60;
+            ctx.font = "bold 30px Roboto, Arial";
+            ctx.fillStyle = "#374151";
+            let detailsText = `Total Credits: ${totCred}    •    Total Points: ${totPts}`;
+            if (!isNaN(oldCgpa)) detailsText = `Previous CGPA: ${oldCgpa}    •    ` + detailsText;
+            ctx.fillText(detailsText, startX + 20, footerY);
+
+            ctx.font = "italic 24px Roboto, Arial";
+            ctx.fillStyle = "#9ca3af";
+            ctx.textAlign = "right";
+            ctx.fillText("Generated by Sriharan", 1500, footerY);
+            
+            document.getElementById('download-link').href = canvas.toDataURL('image/png');
+            document.getElementById('download-link').download = `Report_${newCgpa || sgpa}.png`;
+        }
+
+        function getLines(ctx, text, maxWidth) {
+            const words = text.split(" ");
+            const lines = [];
+            let currentLine = words[0];
+            for (let i = 1; i < words.length; i++) {
+                const width = ctx.measureText(currentLine + " " + words[i]).width;
+                if (width < maxWidth) currentLine += " " + words[i]; else { lines.push(currentLine); currentLine = words[i]; }
+            }
+            lines.push(currentLine);
+            return lines;
+        }
+
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2; if (h < 2 * r) r = h / 2;
+                this.beginPath(); this.moveTo(x + r, y);
+                this.arcTo(x + w, y, x + w, y + h, r);
+                this.arcTo(x + w, y + h, x, y + h, r);
+                this.arcTo(x, y + h, x, y, r);
+                this.arcTo(x, y, x + w, y, r);
+                this.closePath(); return this;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,67 @@
+{
+  "1": {
+    "name": "Sem 1 - AIML",
+    "sem_number": 1,
+    "required": {
+      "Professional English - I": 2,
+      "Matrices and Calculus": 4,
+      "Foundation of AI": 3,
+      "Engineering Graphics": 4,
+      "C Programming": 3,
+      "C Programming Laboratory": 2,
+      "FRE Laboratory": 2
+    },
+    "optional": [],
+    "elective_credit": 0
+  },
+  "2": {
+    "name": "Sem 5 - AIML",
+    "sem_number": 5,
+    "required": {
+      "60 AM 001 - ML": 3,
+      "60 AM 501 - NI": 3,
+      "60 AM 502 - OS": 3,
+      "60 AM 0P1 - ML LAB": 2,
+      "60 AM 5P1 - NI LAB": 2,
+      "60 AM E15 - CS": 3,
+      "60 IT 003 - DT": 3
+    },
+    "optional": [
+      "60 CS L10 - SL"
+    ],
+    "elective_credit": 3
+  },
+  "3": {
+    "name": "Sem 6 - AIML",
+    "sem_number": 6,
+    "required": {
+      "60 AM 601 - Visual Analytics": 3,
+      "60 AM 602 - Deep Learning": 3,
+      "60 AM 603 - Web Tech": 3,
+      "60 AM 6P1 - VA Laboratory": 2,
+      "60 AM 6P2 - DL Laboratory": 2,
+      "60 AM E25 - Quantum Comp": 3,
+      "60 HS 002 - Eco & Finance": 3
+    },
+    "optional": [
+      "60 CS Lxx - Open Elective III"
+    ],
+    "elective_credit": 3
+  },
+  "4": {
+    "name": "Sem 7 - AIML",
+    "sem_number": 7,
+    "required": {
+      "60 AM 701 - Machine vision": 3,
+      "60 AM 702 - Speech and Language Processing": 3,
+      "60 AM 703 - Explainable AI": 3,
+      "60 AM 7P1 - Machine vision Laboratory": 2,
+      "60 AM 7P2 - Speech and Language Processing Laboratory": 2,
+      "60 AM 7P3 - Project Work Phase - I": 2,
+      "60 AM E32 - UI and UX Design": 3,
+      "60 AM E45 - Game Development": 3
+    },
+    "optional": [],
+    "elective_credit": 3
+  }
+}
