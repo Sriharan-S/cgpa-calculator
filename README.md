@@ -2,9 +2,9 @@
 
 A lightweight, modern CGPA Calculator built for university students. It features a sleek Material Design interface, a robust grade reporting system, and a **fully serverless admin panel** that allows course data to be updated dynamically without touching the code.
 
-**Live Demo:** [cgpa-calculator.sriharan2544.workers.dev](https://cgpa-calculator.sriharan2544.workers.dev)
+**Live Demo:** [cgpa.sriharan2544.workers.dev](https://cgpa.sriharan2544.workers.dev)
 
-**Admin Panel:** [cgpa-calculator.sriharan2544.workers.dev/admin](https://cgpa-calculator.sriharan2544.workers.dev/admin.html)
+**Admin Panel:** [cgpa.sriharan2544.workers.dev/admin](https://cgpa.sriharan2544.workers.dev/admin.html)
 
 ---
 
