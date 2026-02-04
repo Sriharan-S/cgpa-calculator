@@ -14,9 +14,9 @@
     "optional": [],
     "elective_credit": 0
   },
-  "2": {
+  "5": {
     "name": "Semester 5 - AIML",
-    "sem_number": 6,
+    "sem_number": 5,
     "required": {
       "60 AM 001 - ML": 3,
       "60 AM 501 - NI": 3,
@@ -31,9 +31,9 @@
     ],
     "elective_credit": 3
   },
-  "3": {
+  "6": {
     "name": "Semester 6 - AIML",
-    "sem_number": 7,
+    "sem_number": 6,
     "required": {
       "60 AM 601 - Visual Analytics": 3,
       "60 AM 602 - Deep Learning": 3,
@@ -48,9 +48,9 @@
     ],
     "elective_credit": 3
   },
-  "4": {
+  "7": {
     "name": "Semester 7 - AIML",
-    "sem_number": 8,
+    "sem_number": 7,
     "required": {
       "60 AM 701 - Machine vision": 3,
       "60 AM 702 - Speech and Language Processing": 3,
@@ -64,7 +64,7 @@
     "optional": [],
     "elective_credit": 3
   },
-  "1769066179620": {
+  "3": {
     "name": "Semester 3 - AIML",
     "sem_number": 3,
     "required": {
@@ -79,8 +79,8 @@
     "optional": [],
     "elective_credit": 0
   },
-  "1770217990333": {
-    "name": "Semester 2",
+  "2": {
+    "name": "Semester 2 - AIML",
     "sem_number": 2,
     "required": {
       "professional english II": 2,
