@@ -78,5 +78,21 @@
     },
     "optional": [],
     "elective_credit": 0
+  },
+  "1770217990333": {
+    "name": "Semester 2",
+    "sem_number": 2,
+    "required": {
+      "professional english II": 2,
+      "LADM": 4,
+      "PCT": 3,
+      "EC": 3,
+      "BEEE": 3,
+      "PP": 4,
+      "PP lab": 2,
+      "Physics and Chemistry Lab": 2
+    },
+    "optional": [],
+    "elective_credit": 0
   }
 }
